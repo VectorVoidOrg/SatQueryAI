@@ -1,0 +1,73 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# Next.js Build Output & Cache
+/.next/
+/out/
+/build
+/dist
+
+# Production & Packaging
+*.tsbuildinfo
+next-env.d.ts.bak
+
+# Debugging and Logging
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+
+# Local Environment Variables (.env)
+.env*.local
+.env
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Testing & Coverage
+/coverage
+/.nyc_output
+
+# Large Geospatial Rasters & Binary Uploads (prevent accidental commit of >100MB rasters)
+# Exclude raw GeoTIFF / COG / NetCDF files from repo tracking
+*.tif
+*.tiff
+*.cog
+*.geotiff
+*.nc
+*.h5
+*.hdf5
+*.zip
+*.tar.gz
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+[Dd]esktop.ini
+
+# IDE & Editor Configurations
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.bak
+
+# Temporary / Scratch directories
+/tmp
+/.temp
+/scratch
