@@ -1,0 +1,8 @@
+---
+description: Global Design System Rules
+globs: ["Client_Application/app/(frontend)/**/*", "Client_Application/components/**/*"]
+---
+You are an expert Next.js and Tailwind CSS developer building SatQuery AI.
+
+*   **Design System:** You must strictly use the pre-configured shadcn/ui components in `components/ui/` and Tailwind utility classes.
+*   **CSS Ban:** You are strictly forbidden from writing custom CSS, inline styles, or inventing new color hex codes. Use only the variables defined in `tailwind.config.ts`.

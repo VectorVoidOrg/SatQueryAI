@@ -43,6 +43,62 @@
   }
 }
 
+.border-glow-card {
+  --edge-proximity: 0;
+  --cursor-angle: 0deg;
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+  padding: 1.5px;
+  border-radius: var(--border-radius);
+  background: linear-gradient(135deg, rgba(148, 163, 184, 0.65), rgba(226, 232, 240, 0.9));
+}
+
+.border-glow-card::before,
+.border-glow-card::after,
+.border-glow-edge-light {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.border-glow-card::before {
+  z-index: -2;
+  background: var(--glow-color);
+  filter: blur(18px);
+  opacity: calc(var(--edge-proximity) * 0.18 * var(--glow-intensity));
+}
+
+.border-glow-card::after,
+.border-glow-edge-light {
+  z-index: 1;
+  padding: 1.5px;
+  background: conic-gradient(
+    from calc(var(--cursor-angle) - var(--cone-spread)),
+    transparent 0deg,
+    var(--glow-color-60) var(--cone-spread),
+    var(--glow-color) calc(var(--cone-spread) + 18deg),
+    transparent calc(var(--cone-spread) * 2 + 18deg)
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  opacity: calc(var(--edge-proximity) * var(--glow-intensity));
+  transition: opacity 180ms ease;
+}
+
+.border-glow-inner {
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
+  min-width: 0;
+  border-radius: calc(var(--border-radius) - 1.5px);
+  background: var(--card-bg);
+}
+
 :root {
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-serif: "Instrument Serif", serif;

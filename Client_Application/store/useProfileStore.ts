@@ -9,6 +9,8 @@ export interface UserProfile {
 interface ProfileState {
   profile: UserProfile;
   isAuthenticated: boolean;
+  hasHydrated: boolean;
+  hydrateFromStorage: () => void;
   isProfileModalOpen: boolean;
   setAuthenticated: (authenticated: boolean) => void;
   setProfileModalOpen: (open: boolean) => void;
@@ -22,23 +24,24 @@ const DEFAULT_PROFILE: UserProfile = {
 };
 
 export const useProfileStore = create<ProfileState>((set) => {
-  let initialProfile = DEFAULT_PROFILE;
-  let initialAuthenticated = false;
-  if (typeof window !== "undefined") {
-    try {
-      const stored = localStorage.getItem("satquery_user_profile");
-      if (stored) {
-        initialProfile = { ...DEFAULT_PROFILE, ...JSON.parse(stored) };
-      }
-      initialAuthenticated = localStorage.getItem("satquery_authenticated") === "true";
-    } catch (e) {
-      // Ignored
-    }
-  }
-
   return {
-    profile: initialProfile,
-    isAuthenticated: initialAuthenticated,
+    profile: DEFAULT_PROFILE,
+    isAuthenticated: false,
+    hasHydrated: false,
+    hydrateFromStorage: () => {
+      if (typeof window === "undefined") return;
+
+      try {
+        const stored = localStorage.getItem("satquery_user_profile");
+        const profile = stored
+          ? { ...DEFAULT_PROFILE, ...JSON.parse(stored) }
+          : DEFAULT_PROFILE;
+        const isAuthenticated = localStorage.getItem("satquery_authenticated") === "true";
+        set({ profile, isAuthenticated, hasHydrated: true });
+      } catch {
+        set({ hasHydrated: true });
+      }
+    },
     isProfileModalOpen: false,
     setAuthenticated: (authenticated) => {
       if (typeof window !== "undefined") {
@@ -53,7 +56,7 @@ export const useProfileStore = create<ProfileState>((set) => {
         if (typeof window !== "undefined") {
           try {
             localStorage.setItem("satquery_user_profile", JSON.stringify(next));
-          } catch (e) {}
+          } catch {}
         }
         return { profile: next };
       }),

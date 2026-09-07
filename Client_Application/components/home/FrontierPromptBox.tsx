@@ -7,6 +7,8 @@ import { useSessionStore } from "@/store/useSessionStore";
 import { useProfileStore } from "@/store/useProfileStore";
 import { AuditRecord } from "@/lib/types/chat";
 import { validateTiffFile } from "@/lib/api/ingestClient";
+import { BorderGlow } from "@/components/ui/BorderGlow";
+import { MultiStepLoader } from "@/components/ui/multi-step-loader";
 
 interface QueryResponse {
   text?: string;
@@ -111,7 +113,7 @@ export const FrontierPromptBox: React.FC<FrontierPromptBoxProps> = ({ value, onC
       localStorage.setItem("satquery_anonymous_session_id", newSessionId);
 
       // 3. Smooth transition to dedicated analysis page with unique ID
-      router.push(`/analysis/${newSessionId}`);
+      router.push(`/chat/${newSessionId}`);
     } catch (err) {
       console.warn("API call failed, generating local session:", err);
       // Fallback local session generation
@@ -120,7 +122,7 @@ export const FrontierPromptBox: React.FC<FrontierPromptBoxProps> = ({ value, onC
         attachedFileName: attachedFile?.name,
       });
       localStorage.setItem("satquery_anonymous_session_id", newSessionId);
-      router.push(`/analysis/${newSessionId}`);
+      router.push(`/chat/${newSessionId}`);
     }
   };
 
@@ -131,22 +133,47 @@ export const FrontierPromptBox: React.FC<FrontierPromptBoxProps> = ({ value, onC
     }
   };
 
+  const loadingStates = attachedFile
+    ? [
+        { text: "Validating satellite imagery" },
+        { text: "Uploading GeoTIFF for analysis" },
+        { text: "Running spatial query" },
+        { text: "Preparing your map workspace" },
+      ]
+    : [
+        { text: "Validating your query" },
+        { text: "Running spatial query" },
+        { text: "Preparing your map workspace" },
+      ];
+
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-2.5">
+    <>
+      <MultiStepLoader
+        loadingStates={loadingStates}
+        loading={isSubmitting}
+        duration={attachedFile ? 1200 : 900}
+        loop={false}
+      />
+      <div className="w-full max-w-2xl mx-auto space-y-2.5">
       {/* Liquid Glass Prompt Box Card */}
-      <div
-        className={`liquid-glass relative rounded-3xl p-4 shadow-glass transition-all duration-300 border bg-white/90 ${
-          isDragOver
-            ? "border-accent bg-sky-50/90 ring-2 ring-accent/30"
-            : "border-slate-200/90 hover:border-slate-300"
-        }`}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setIsDragOver(true);
-        }}
-        onDragLeave={() => setIsDragOver(false)}
-        onDrop={handleDrop}
+      <BorderGlow
+        className="transition-transform duration-300"
+        backgroundColor={isDragOver ? "#f0f9ff" : "#ffffff"}
+        glowColor="198 93 60"
+        colors={["#38bdf8", "#22c55e", "#f59e0b"]}
+        glowIntensity={isDragOver ? 1.35 : 0.9}
       >
+        <div
+          className={`liquid-glass relative rounded-[inherit] p-4 shadow-glass transition-all duration-300 border-0 bg-transparent ${
+            isDragOver ? "ring-2 ring-accent/30" : ""
+          }`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragOver(true);
+          }}
+          onDragLeave={() => setIsDragOver(false)}
+          onDrop={handleDrop}
+        >
         <input
           ref={fileInputRef}
           type="file"
@@ -236,13 +263,15 @@ export const FrontierPromptBox: React.FC<FrontierPromptBoxProps> = ({ value, onC
             )}
           </button>
         </div>
-      </div>
+        </div>
+      </BorderGlow>
 
       {/* Helper text */}
       <div className="flex items-center justify-between px-3 text-[11px] text-slate-400 font-mono">
         <span>Supports Multi-band .tif / .tiff (500MB+) & natural language queries</span>
         <span>Press <kbd className="px-1 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">Enter ↵</kbd></span>
       </div>
-    </div>
+      </div>
+    </>
   );
 };

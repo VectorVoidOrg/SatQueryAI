@@ -1,14 +1,13 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Globe, ArrowLeft, Mail, Lock, User, Sparkles, ArrowRight, ShieldCheck } from "lucide-react";
 import { useProfileStore } from "@/store/useProfileStore";
 
 export default function LoginPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { updateProfile, setAuthenticated } = useProfileStore();
 
   const [isSignUp, setIsSignUp] = useState(false);
@@ -16,6 +15,14 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [returnTo, setReturnTo] = useState("/chat/c_sundarbans_demo");
+
+  useEffect(() => {
+    const requestedPath = new URLSearchParams(window.location.search).get("returnTo");
+    if (requestedPath?.startsWith("/")) {
+      setReturnTo(requestedPath);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +53,7 @@ export default function LoginPage() {
       });
       setAuthenticated(true);
 
-      router.push(searchParams.get("returnTo") || "/analysis/c_sundarbans_demo");
+      router.push(returnTo);
     } catch (error) {
       console.error("Authentication request failed", error);
     } finally {

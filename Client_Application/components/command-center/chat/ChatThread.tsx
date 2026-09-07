@@ -1,12 +1,16 @@
 "use client";
 
 import React, { useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useChatStore } from "@/store/useChatStore";
+import { useProfileStore } from "@/store/useProfileStore";
 import { ChatMessageBubble } from "@/components/command-center/chat/ChatMessageBubble";
 import { ArrowUpRight, Sparkles } from "lucide-react";
 
 export const ChatThread: React.FC = () => {
+  const router = useRouter();
   const { messages, sendMessage, isSending } = useChatStore();
+  const { isAuthenticated } = useProfileStore();
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -41,7 +45,13 @@ export const ChatThread: React.FC = () => {
               key={idx}
               type="button"
               disabled={isSending}
-              onClick={() => sendMessage(q)}
+              onClick={() => {
+                if (!isAuthenticated) {
+                  router.push(`/login?returnTo=${encodeURIComponent(window.location.pathname)}`);
+                  return;
+                }
+                sendMessage(q);
+              }}
               className="liquid-glass rounded-full px-4 py-2.5 text-left text-xs text-slate-700 hover:text-slate-900 hover:bg-white transition-all flex items-center justify-between group shadow-sm border border-slate-200/80"
             >
               <div className="flex items-center gap-2 truncate pr-2">

@@ -44,6 +44,7 @@ export const RasterLayer: React.FC<RasterLayerProps> = ({
       url={source.url}
       opacity={effectiveOpacity}
       maxZoom={19}
+      noWrap
       attribution="&copy; OpenStreetMap contributors, Esri, Stadia"
     />
   );

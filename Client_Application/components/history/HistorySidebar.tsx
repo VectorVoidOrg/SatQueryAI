@@ -16,7 +16,7 @@ export const HistorySidebar: React.FC = () => {
 
   const handleSelectSession = (id: string) => {
     setHistorySidebarOpen(false);
-    router.push(`/analysis/${id}`);
+    router.push(`/chat/${id}`);
   };
 
   const handleNewAnalysis = () => {
