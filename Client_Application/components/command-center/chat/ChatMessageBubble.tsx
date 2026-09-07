@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useEffect, useState } from "react";
 import { ChatMessage } from "@/lib/types/chat";
 import { useChatStore } from "@/store/useChatStore";
 import { ThinkingIndicator } from "@/components/command-center/chat/ThinkingIndicator";
@@ -7,6 +9,24 @@ import { Button } from "@/components/ui/button";
 
 interface ChatMessageBubbleProps {
   message: ChatMessage;
+}
+
+// Client-only timestamp renderer to eliminate SSR / Client timezone & locale divergence
+function FormattedTimestamp({ timestamp }: { timestamp: string | number | Date }) {
+  const [formattedTime, setFormattedTime] = useState<string>("");
+
+  useEffect(() => {
+    if (timestamp) {
+      setFormattedTime(
+        new Date(timestamp).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      );
+    }
+  }, [timestamp]);
+
+  return <span suppressHydrationWarning>{formattedTime}</span>;
 }
 
 export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({ message }) => {
@@ -22,9 +42,9 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({ message })
     return (
       <div className="flex justify-end animate-fade-in-up">
         <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-slate-900 text-white px-4 py-3 text-xs shadow-sm leading-relaxed">
-          <p className="whitespace-pre-wrap">{message.text}</p>
-          <div className="mt-1.5 text-[10px] text-slate-400 text-right font-mono">
-            {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          <div className="whitespace-pre-wrap">{message.text}</div>
+          <div className="mt-1.5 text-[10px] text-slate-400 text-right font-mono min-h-[14px]">
+            <FormattedTimestamp timestamp={message.createdAt} />
           </div>
         </div>
       </div>
@@ -68,7 +88,7 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({ message })
     <div className="flex justify-start animate-fade-in-up">
       <div className="liquid-glass max-w-[90%] rounded-2xl rounded-tl-sm p-4 text-xs text-slate-800 shadow-glass space-y-3 leading-relaxed border border-slate-200/80">
         {/* Main message text */}
-        <p className="whitespace-pre-wrap text-slate-800 leading-relaxed">{message.text}</p>
+        <div className="whitespace-pre-wrap text-slate-800 leading-relaxed">{message.text}</div>
 
         {/* Spatial evidence badge */}
         {hasEvidence && (
@@ -101,8 +121,8 @@ export const ChatMessageBubble: React.FC<ChatMessageBubbleProps> = ({ message })
           </div>
         )}
 
-        <div className="text-[10px] text-slate-400 font-mono">
-          {new Date(message.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+        <div className="text-[10px] text-slate-400 font-mono min-h-[14px]">
+          <FormattedTimestamp timestamp={message.createdAt} />
         </div>
       </div>
     </div>

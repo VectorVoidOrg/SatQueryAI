@@ -4,16 +4,13 @@ import React, { useState } from "react";
 import { FrontierHero } from "@/components/home/FrontierHero";
 import { FrontierPromptBox } from "@/components/home/FrontierPromptBox";
 import { HistorySidebar } from "@/components/history/HistorySidebar";
-import { ProfileModal } from "@/components/profile/ProfileModal";
 import { useSessionStore } from "@/store/useSessionStore";
-import { useProfileStore } from "@/store/useProfileStore";
-import { Globe, Clock, Plus, User } from "lucide-react";
+import { Globe, Clock, Plus, LogIn, Map } from "lucide-react";
 import Link from "next/link";
 
 export default function HomePage() {
   const [prompt, setPrompt] = useState("");
   const { setHistorySidebarOpen } = useSessionStore();
-  const { profile, setProfileModalOpen } = useProfileStore();
 
   const handleSelectSuggestion = (query: string) => {
     setPrompt(query);
@@ -44,8 +41,17 @@ export default function HomePage() {
           </span>
         </Link>
 
-        {/* Right: History, New Chat, Profile Avatar */}
+        {/* Right: Chat Canvas, History, New Chat, and Login */}
         <div className="flex items-center gap-3">
+          {/* Direct Link to SatQuery Chat Canvas */}
+          <Link
+            href="/chat"
+            className="liquid-glass hidden md:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium text-slate-700 hover:text-slate-950 hover:bg-white border border-slate-200/80 transition-all shadow-sm"
+          >
+            <Map className="w-3.5 h-3.5 text-slate-500" />
+            <span>Map Workspace</span>
+          </Link>
+
           {/* History Button (opens collapsible sidebar) */}
           <button
             type="button"
@@ -67,15 +73,16 @@ export default function HomePage() {
             <span>New Analysis</span>
           </button>
 
-          {/* User Profile Avatar (opens profile pop-up) */}
-          <button
-            type="button"
-            onClick={() => setProfileModalOpen(true)}
-            className="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center font-serif text-sm font-semibold hover:bg-black hover:scale-105 transition-all shadow-sm ring-2 ring-slate-200"
-            title={`Logged in as ${profile.name}`}
+          {/* Flashing Corner Login Button */}
+          <Link
+            href="/login"
+            className="relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-white bg-slate-900 hover:bg-black transition-all shadow-md group overflow-hidden"
+            title="Sign In / Register Account"
           >
-            {profile.name ? profile.name.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
-          </button>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <LogIn className="w-3.5 h-3.5 text-slate-300 group-hover:text-white transition-colors" />
+            <span>Login</span>
+          </Link>
         </div>
       </header>
 
@@ -89,17 +96,14 @@ export default function HomePage() {
       <footer className="relative z-10 px-6 py-4 text-center text-xs text-slate-400 font-mono flex items-center justify-between border-t border-slate-200/60">
         <span>SatQuery AI • Autonomous Geospatial Vision-Language Architecture</span>
         <div className="flex items-center gap-4 text-slate-500">
-          <Link href="/analysis/c_sundarbans_demo" className="hover:underline hover:text-slate-900">
-            Default Demo Workspace &rarr;
+          <Link href="/chat" className="hover:underline hover:text-slate-900">
+            Open Chat & Map UI &rarr;
           </Link>
         </div>
       </footer>
 
       {/* Collapsible History Sidebar */}
       <HistorySidebar />
-
-      {/* Profile Settings Modal */}
-      <ProfileModal />
     </div>
   );
 }
