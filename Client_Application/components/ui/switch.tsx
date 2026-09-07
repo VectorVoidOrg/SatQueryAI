@@ -30,8 +30,8 @@ export const Switch: React.FC<SwitchProps> = ({
       onClick={() => onCheckedChange(!checked)}
       className={twMerge(
         clsx(
-          "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border border-slate-300/60 transition-all duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/40 disabled:cursor-not-allowed disabled:opacity-40",
-          checked ? "bg-slate-900 shadow-sm" : "bg-slate-200/90",
+          "relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border border-stone-300/40 transition-all duration-200 ease-apple focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:cursor-not-allowed disabled:opacity-40",
+          checked ? "bg-accent shadow-xs" : "bg-stone-200",
           className
         )
       )}
@@ -39,7 +39,7 @@ export const Switch: React.FC<SwitchProps> = ({
       <span
         aria-hidden="true"
         className={clsx(
-          "pointer-events-none inline-block h-3.5 w-3.5 mt-[2px] ml-[2px] transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out",
+          "pointer-events-none inline-block h-3.5 w-3.5 mt-[2px] ml-[2px] transform rounded-full bg-white shadow-sm transition duration-200 ease-apple",
           checked ? "translate-x-4" : "translate-x-0"
         )}
       />

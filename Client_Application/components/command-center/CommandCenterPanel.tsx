@@ -14,18 +14,18 @@ export const CommandCenterPanel: React.FC = () => {
   const hasAuditAvailable = !!latestAudit || messages.some((m) => !!m.metrics);
 
   return (
-    <div className="flex flex-col h-full w-full bg-white/60 text-slate-900 overflow-hidden">
+    <div className="flex flex-col h-full w-full bg-transparent text-primary overflow-hidden">
       {/* Panel Header & Tabs */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200/80 bg-white/70 shrink-0">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-stone-200/60 bg-white/40 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 shadow-sm">
+          <div className="w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center shadow-xs">
             <Bot className="w-4 h-4 text-accent" />
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="font-serif text-base tracking-wide text-slate-900 font-medium">
+            <span className="font-serif text-base tracking-wide text-primary font-medium">
               AI Command
             </span>
-            <em className="font-serif italic text-sm text-slate-500">
+            <em className="font-serif italic text-sm text-accent">
               Center
             </em>
           </div>

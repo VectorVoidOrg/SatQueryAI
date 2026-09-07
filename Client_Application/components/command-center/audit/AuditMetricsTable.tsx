@@ -41,26 +41,26 @@ export const AuditMetricsTable: React.FC<AuditMetricsTableProps> = ({ metrics })
 
   return (
     <div className="space-y-2.5">
-      <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-slate-500 font-semibold">
+      <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-secondary/70 font-semibold">
         <BarChart2 className="w-3.5 h-3.5 text-accent" />
         <span>Quantitative Evaluation Metrics</span>
       </div>
 
-      <div className="liquid-glass rounded-2xl overflow-hidden shadow-glass border border-slate-200/80 bg-white/80">
+      <div className="glass-card rounded-2xl overflow-hidden">
         <table className="w-full text-left text-xs border-collapse">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200/80 text-slate-500 font-semibold text-[11px]">
+            <tr className="bg-sand-100/70 border-b border-stone-200/60 text-secondary font-semibold text-[11px]">
               <th className="py-3 px-4">Metric</th>
               <th className="py-3 px-4 text-right">Computed Value</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-stone-200/50">
             {entries.map(([key, val]) => (
-              <tr key={key} className="hover:bg-slate-50/50 transition-colors">
-                <td className="py-3 px-4 font-medium text-slate-800">
+              <tr key={key} className="hover:bg-white/40 transition-colors">
+                <td className="py-3 px-4 font-medium text-primary">
                   {formatKey(key)}
                 </td>
-                <td className="py-3 px-4 text-right font-mono font-semibold text-slate-950">
+                <td className="py-3 px-4 text-right font-mono font-semibold text-primary">
                   {formatValue(key, val)}
                 </td>
               </tr>

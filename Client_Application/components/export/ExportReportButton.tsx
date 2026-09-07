@@ -47,22 +47,23 @@ export const ExportReportButton: React.FC = () => {
       size="sm"
       disabled={!hasHistory || exportState === "generating"}
       onClick={handleExport}
-      className="text-xs h-8 px-4 font-semibold text-slate-800 hover:text-black transition-all shadow-sm border border-slate-300/80"
+      className="apple-interactive text-xs h-8 px-3.5 sm:px-4 font-semibold text-white bg-[#7F4B30] hover:bg-[#B27D57] transition-all duration-200 ease-apple shadow-xs border border-[#7F4B30]/30 hover:-translate-y-0.5 active:scale-[0.98] shrink-0 whitespace-nowrap disabled:opacity-40 disabled:pointer-events-none"
     >
       {exportState === "generating" ? (
         <>
-          <Loader2 className="w-3.5 h-3.5 animate-spin text-accent" />
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-white" />
           <span>Generating PDF...</span>
         </>
       ) : exportState === "downloaded" ? (
         <>
-          <Check className="w-3.5 h-3.5 text-emerald-600" />
-          <span className="text-emerald-700 font-semibold">Downloaded ✓</span>
+          <Check className="w-3.5 h-3.5 text-white" />
+          <span className="text-white font-semibold">Downloaded ✓</span>
         </>
       ) : (
         <>
-          <Download className="w-3.5 h-3.5 text-slate-600" />
-          <span>Export Report</span>
+          <Download className="w-3.5 h-3.5 text-white/90" />
+          <span className="hidden sm:inline">Export Audit Report</span>
+          <span className="sm:hidden">Export</span>
         </>
       )}
     </Button>
@@ -70,7 +71,7 @@ export const ExportReportButton: React.FC = () => {
 
   if (!hasHistory) {
     return (
-      <Tooltip content="Chat history required before generating report" disabled={hasHistory}>
+      <Tooltip content="Submit at least one analytical query to export a calibrated PDF report">
         <div>{buttonContent}</div>
       </Tooltip>
     );

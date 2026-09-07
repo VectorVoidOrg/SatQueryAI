@@ -10,21 +10,21 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "liquid", size = "md", disabled, ...props }, ref) => {
     const base =
-      "inline-flex items-center justify-center font-medium rounded-full transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/40 disabled:pointer-events-none disabled:opacity-40 select-none cursor-pointer";
+      "inline-flex items-center justify-center font-medium rounded-full transition-all duration-200 ease-apple focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 disabled:pointer-events-none disabled:opacity-40 select-none cursor-pointer";
 
     const variants = {
       liquid:
-        "liquid-glass text-slate-800 text-sm hover:bg-white hover:shadow-sm active:scale-[0.98]",
+        "glass-pill text-primary text-sm hover:bg-white/70 active:scale-[0.98] border border-white/60",
       default:
-        "bg-slate-900 text-white hover:bg-black active:scale-[0.98] shadow-sm font-semibold",
+        "bg-[#7F4B30] hover:bg-[#683c25] text-white hover:brightness-105 active:scale-[0.98] shadow-[0_4px_16px_rgba(127,75,48,0.35)] font-semibold ring-2 ring-[#7F4B30]/25",
       outline:
-        "liquid-glass text-slate-700 hover:text-slate-900 hover:bg-white active:scale-[0.98]",
+        "glass-pill text-primary hover:bg-white/80 active:scale-[0.98] border border-white/60",
       ghost:
-        "text-slate-600 hover:text-slate-900 hover:bg-slate-100/80 active:scale-[0.98]",
+        "text-secondary hover:text-primary hover:bg-black/5 active:scale-[0.98]",
       secondary:
-        "bg-slate-100 text-slate-850 hover:bg-slate-200 active:scale-[0.98] border border-slate-200/80",
+        "bg-sand-100/80 text-primary hover:bg-sand-200/80 active:scale-[0.98] border border-stone-300/60",
       danger:
-        "bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 active:scale-[0.98]",
+        "bg-rose-500/10 text-rose-700 border border-rose-200 hover:bg-rose-500/20 active:scale-[0.98]",
     };
 
     const sizes = {

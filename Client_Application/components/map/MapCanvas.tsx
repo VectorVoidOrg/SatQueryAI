@@ -1,34 +1,39 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import {
-  MapContainer,
-  TileLayer,
-  GeoJSON,
-  ImageOverlay,
-  useMap,
-} from "react-leaflet";
+import dynamic from "next/dynamic";
 import { useAssetStore } from "@/store/useAssetStore";
 import { LayerControlGlass } from "@/components/map/LayerControlGlass";
 import { RasterLayer } from "@/components/map/RasterLayer";
 import { EvidenceLayer } from "@/components/map/EvidenceLayer";
 import { UploadDropzone } from "@/components/ingestion/UploadDropzone";
 import L from "leaflet";
-import "leaflet/dist/leaflet.css";
+import { applyLeafletContainerPatch } from "@/lib/map/leafletPatch";
 
-// Fix for Leaflet default marker icons
-try {
-  delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl: "https://unpkg.com",
-    iconUrl: "https://unpkg.com",
-    shadowUrl: "https://unpkg.com",
-  });
-} catch {
-  // Non-browser fallback
-}
+// Apply container cleanup patch immediately before react-leaflet instantiation
+applyLeafletContainerPatch();
 
-// Controller component for map view transitions
+// Dynamic imports of react-leaflet primitives (TRD §3)
+const MapContainer = dynamic(
+  () => import("react-leaflet").then((mod) => mod.MapContainer),
+  { ssr: false }
+);
+const TileLayer = dynamic(
+  () => import("react-leaflet").then((mod) => mod.TileLayer),
+  { ssr: false }
+);
+const GeoJSON = dynamic(
+  () => import("react-leaflet").then((mod) => mod.GeoJSON),
+  { ssr: false }
+);
+const ImageOverlay = dynamic(
+  () => import("react-leaflet").then((mod) => mod.ImageOverlay),
+  { ssr: false }
+);
+
+// Map view controller hook & component
+import { useMap } from "react-leaflet";
+
 function MapViewController({
   bbox,
   evidence,
@@ -40,32 +45,14 @@ function MapViewController({
   const prevBboxRef = useRef<string | null>(null);
   const prevEvidenceRef = useRef<GeoJSON.FeatureCollection | null>(null);
 
-  useEffect(() => {
-    const updateMinimumWorldZoom = () => {
-      const size = map.getSize();
-      const viewportDimension = Math.max(size.x, size.y);
-      const minimumZoom = Math.max(0, Math.ceil(Math.log2(viewportDimension / 256)));
-
-      map.setMinZoom(minimumZoom);
-      if (map.getZoom() < minimumZoom) {
-        map.setZoom(minimumZoom, { animate: false });
-      }
-    };
-
-    updateMinimumWorldZoom();
-    map.on("resize", updateMinimumWorldZoom);
-
-    return () => {
-      map.off("resize", updateMinimumWorldZoom);
-    };
-  }, [map]);
-
+  // Handle bounding box updates (e.g. on new asset ingestion)
   useEffect(() => {
     if (!bbox || !map) return;
     const bboxKey = bbox.join(",");
     if (prevBboxRef.current === bboxKey) return;
     prevBboxRef.current = bboxKey;
 
+    // bbox is [minLon, minLat, maxLon, maxLat]
     const bounds = L.latLngBounds(
       [bbox[1], bbox[0]],
       [bbox[3], bbox[2]]
@@ -73,28 +60,29 @@ function MapViewController({
 
     map.flyToBounds(bounds, {
       duration: 0.8,
+      padding: [40, 40],
       easeLinearity: 0.25,
     });
   }, [bbox, map]);
 
+  // Handle auto-fit on new spatial evidence arrival (US-6)
   useEffect(() => {
-    if (!evidence || !map || prevEvidenceRef.current === evidence) return;
+    if (!evidence || !map || evidence.features.length === 0) return;
+    if (prevEvidenceRef.current === evidence) return;
     prevEvidenceRef.current = evidence;
 
     try {
       const geoJsonLayer = L.geoJSON(evidence);
-      const evidenceBounds = geoJsonLayer.getBounds();
-
-      if (evidenceBounds.isValid()) {
-        const currentBounds = map.getBounds();
-        if (!currentBounds.contains(evidenceBounds)) {
-          map.flyToBounds(evidenceBounds, {
-            duration: 0.8,
-          });
-        }
+      const bounds = geoJsonLayer.getBounds();
+      if (bounds.isValid()) {
+        map.flyToBounds(bounds, {
+          duration: 0.8,
+          padding: [50, 50],
+          maxZoom: 16,
+        });
       }
-    } catch (e) {
-      console.warn("Could not calculate evidence bounds", e);
+    } catch {
+      // Ignored if geometry bounds cannot be calculated
     }
   }, [evidence, map]);
 
@@ -102,27 +90,41 @@ function MapViewController({
 }
 
 export const MapCanvas: React.FC = () => {
-  const { bbox, evidence, activeLayers, layerOpacity, layerSources } = useAssetStore();
+  const { bbox, layerSources, activeLayers, layerOpacity, evidence } = useAssetStore();
 
-  // Compute center safely based on available bounding box arrays
-  const initialCenter: [number, number] = bbox && bbox.length >= 4
+  // Fix Leaflet marker icon asset resolution paths in Next.js
+  useEffect(() => {
+    applyLeafletContainerPatch();
+    try {
+      delete (L.Icon.Default.prototype as any)._getIconUrl;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl:
+          "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+        iconUrl:
+          "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+        shadowUrl:
+          "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+      });
+    } catch {
+      // safe fallback
+    }
+  }, []);
+
+  // Center on bounding box or fallback to Sundarbans default
+  const defaultCenter: [number, number] = bbox
     ? [(bbox[1] + bbox[3]) / 2, (bbox[0] + bbox[2]) / 2]
     : [21.83, 88.22];
 
   return (
-    <div
-      id="satquery-map-container"
-      className="relative w-full h-full min-h-[500px] overflow-hidden bg-slate-100 select-none"
-    >
+    <div className="relative w-full h-full min-h-[400px] overflow-hidden select-none bg-[#EFE8DE]">
       <MapContainer
-        center={initialCenter}
+        key={bbox ? `map-${bbox.join("-")}` : "map-default"}
+        center={defaultCenter}
         zoom={11}
-        maxBounds={[[-85.05112878, -180], [85.05112878, 180]]}
-        maxBoundsViscosity={1}
-        worldCopyJump={false}
         zoomControl={false}
+        attributionControl={false}
         className="w-full h-full z-0"
-        style={{ width: "100%", height: "100%", background: "#E2E8F0" }}
+        style={{ width: "100%", height: "100%", background: "#EFE8DE" }}
       >
         <MapViewController bbox={bbox} evidence={evidence} />
 
@@ -148,23 +150,26 @@ export const MapCanvas: React.FC = () => {
         <EvidenceLayer GeoJSONComponent={GeoJSON} />
       </MapContainer>
 
-      {/* Floating Layer Control */}
+      {/* Atmospheric perimeter vignette to feather map into warm dashboard */}
+      <div className="pointer-events-none absolute inset-0 z-[300] bg-[radial-gradient(ellipse_at_center,_transparent_70%,_rgba(78,59,42,0.12)_100%)]" />
+
+      {/* Floating Layer Control (top-right glassmorphism widget) */}
       <LayerControlGlass />
 
-      {/* Upload Dropzone */}
+      {/* Upload Dropzone (bottom-left) */}
       <UploadDropzone />
 
-      {/* Coordinate Status Bar */}
-      <div className="liquid-glass absolute bottom-3 right-3 z-[400] pointer-events-none hidden sm:flex items-center gap-3 px-3.5 py-1.5 rounded-full border border-slate-200/80 text-[10px] font-mono text-slate-600 shadow-sm">
+      {/* Subtle Coordinate / Instrument Status Bar */}
+      <div className="liquid-glass absolute bottom-3 right-3 z-[400] pointer-events-none hidden sm:flex items-center gap-3 px-3.5 py-1.5 rounded-full border border-white/60 text-[10px] font-mono text-secondary shadow-xs">
         <span className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
           CANVAS READY
         </span>
-        <span className="text-slate-300">|</span>
+        <span className="text-stone-300">|</span>
         <span>EPSG:4326</span>
-        <span className="text-slate-300">|</span>
-        <span className="text-slate-500">
-          {bbox && bbox.length >= 4
+        <span className="text-stone-300">|</span>
+        <span className="text-secondary/70">
+          {bbox
             ? `BBOX: [${bbox[0].toFixed(2)}, ${bbox[1].toFixed(2)}, ${bbox[2].toFixed(2)}, ${bbox[3].toFixed(2)}]`
             : "WORLD VIEW"}
         </span>

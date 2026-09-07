@@ -33,7 +33,7 @@ export const Slider: React.FC<SliderProps> = ({
       value={value}
       onChange={(e) => onChange(parseFloat(e.target.value))}
       className={clsx(
-        "h-1.5 w-full cursor-pointer appearance-none rounded-full bg-slate-200 accent-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400/40",
+        "h-1.5 w-full cursor-pointer appearance-none rounded-full bg-stone-200 accent-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
         className
       )}
     />

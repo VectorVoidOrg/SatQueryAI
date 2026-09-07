@@ -11,10 +11,10 @@ export const FeaturePopup: React.FC<FeaturePopupProps> = ({ properties }) => {
   const areaM2 = properties.area_m2 ? properties.area_m2.toLocaleString() : null;
 
   return (
-    <div className="p-1 min-w-[220px] max-w-[280px] font-sans text-slate-800">
-      <div className="flex items-center gap-2 border-b border-slate-200/80 pb-2 mb-2">
-        <MapPin className="w-4 h-4 text-amber-500 shrink-0" />
-        <span className="font-serif text-sm text-slate-900 leading-tight font-medium">
+    <div className="p-1 min-w-[220px] max-w-[280px] font-sans text-primary">
+      <div className="flex items-center gap-2 border-b border-stone-200/60 pb-2 mb-2">
+        <MapPin className="w-4 h-4 text-amber-600 shrink-0" />
+        <span className="font-serif text-sm text-primary leading-tight font-medium">
           {className}
         </span>
       </div>
@@ -22,11 +22,11 @@ export const FeaturePopup: React.FC<FeaturePopupProps> = ({ properties }) => {
       <div className="space-y-2 text-[11px]">
         {confidence && (
           <div className="flex items-center justify-between">
-            <span className="text-slate-500 flex items-center gap-1">
+            <span className="text-secondary flex items-center gap-1">
               <ShieldCheck className="w-3 h-3 text-emerald-600" />
               AI Confidence:
             </span>
-            <span className="font-mono font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 text-[10px]">
+            <span className="font-mono font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 text-[10px]">
               {confidence}%
             </span>
           </div>
@@ -34,11 +34,11 @@ export const FeaturePopup: React.FC<FeaturePopupProps> = ({ properties }) => {
 
         {areaM2 && (
           <div className="flex items-center justify-between">
-            <span className="text-slate-500 flex items-center gap-1">
+            <span className="text-secondary flex items-center gap-1">
               <Activity className="w-3 h-3 text-accent" />
               Affected Area:
             </span>
-            <span className="font-mono font-semibold text-slate-800">
+            <span className="font-mono font-semibold text-primary">
               {areaM2} m²
             </span>
           </div>
@@ -46,15 +46,15 @@ export const FeaturePopup: React.FC<FeaturePopupProps> = ({ properties }) => {
 
         {properties.retreat_rate_m_yr && (
           <div className="flex items-center justify-between">
-            <span className="text-slate-500">Retreat Rate:</span>
-            <span className="font-mono font-semibold text-amber-800">
+            <span className="text-secondary">Retreat Rate:</span>
+            <span className="font-mono font-semibold text-amber-700">
               {properties.retreat_rate_m_yr} m/yr
             </span>
           </div>
         )}
 
         {properties.sensor_fusion && (
-          <div className="pt-1.5 border-t border-slate-100 text-[10px] text-slate-400 italic">
+          <div className="pt-1.5 border-t border-stone-200/60 text-[10px] text-secondary/70 italic">
             Sensor: {properties.sensor_fusion}
           </div>
         )}

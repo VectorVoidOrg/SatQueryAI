@@ -12,20 +12,33 @@ module.exports = {
         sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
       },
       colors: {
-        base: "#FAFAF9",
+        base: "#FAF6F0",
         surface: "#FFFFFF",
-        primary: "#0F172A",
-        secondary: "rgba(15, 23, 42, 0.6)",
+        primary: "#1C1917",
+        secondary: "#57534E",
         accent: {
-          DEFAULT: "#0284C7",
-          hover: "#0369A1",
+          DEFAULT: "#C86D3B",
+          hover: "#D97736",
+        },
+        ochre: {
+          DEFAULT: "#C86D3B",
+          light: "rgba(200, 109, 59, 0.18)",
+        },
+        sand: {
+          50: "#FAF6F0",
+          100: "#F3E5D0",
+          200: "#EADCC9",
+          300: "#DFCDB5",
         },
         evidence: {
-          DEFAULT: "#F59E0B",
-          fill: "rgba(245, 158, 11, 0.25)",
+          DEFAULT: "#C86D3B",
+          fill: "rgba(200, 109, 59, 0.22)",
         },
-        success: "#16A34A",
-        error: "#DC2626",
+        success: "#059669",
+        error: "#E11D48",
+      },
+      transitionTimingFunction: {
+        apple: "cubic-bezier(0.16, 1, 0.3, 1)",
       },
       borderRadius: {
         panel: "16px",
@@ -33,8 +46,9 @@ module.exports = {
         badge: "9999px",
       },
       boxShadow: {
-        glass: "0 8px 32px rgba(15, 23, 42, 0.08)",
-        subtle: "0 1px 3px rgba(15, 23, 42, 0.06)",
+        glass: "0 12px 36px rgba(78, 59, 42, 0.08), inset 0 1px 0 0 rgba(255, 255, 255, 0.6)",
+        subtle: "0 2px 8px rgba(78, 59, 42, 0.06)",
+        glow: "0 0 24px rgba(200, 109, 59, 0.25)",
       },
       keyframes: {
         "pulse-evidence": {

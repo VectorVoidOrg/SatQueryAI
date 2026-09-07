@@ -119,11 +119,11 @@ export const UploadDropzone: React.FC = () => {
         <button
           type="button"
           onClick={() => setIsCollapsed(false)}
-          className="liquid-glass rounded-full px-5 py-2.5 flex items-center gap-2.5 text-xs font-medium text-slate-800 hover:bg-white hover:text-black transition-all shadow-glass group"
+          className="apple-interactive glass-pill rounded-full px-5 py-2.5 flex items-center gap-2.5 text-xs font-medium text-primary hover:bg-white/70 transition-all duration-200 ease-apple hover:-translate-y-0.5 active:scale-[0.98] group"
         >
-          <UploadCloud className="w-4 h-4 text-slate-700 group-hover:text-black transition-colors" />
+          <UploadCloud className="w-4 h-4 text-secondary group-hover:text-primary transition-colors" />
           <span>Ingest New GeoTIFF</span>
-          <span className="text-[10px] text-slate-400 font-mono tracking-wider">(500MB max)</span>
+          <span className="text-[10px] text-secondary/60 font-mono tracking-wider">(500MB max)</span>
         </button>
       </div>
     );
@@ -132,38 +132,25 @@ export const UploadDropzone: React.FC = () => {
   return (
     <div className="absolute bottom-4 left-4 z-[400] w-80 max-w-[calc(100vw-32px)]">
       <div
-        className={`liquid-glass relative rounded-3xl p-5 shadow-glass transition-all duration-300 ${
+        className={`glass-card relative rounded-3xl p-5 transition-all duration-200 ease-apple border ${
           errorMessage
             ? "border-rose-300 bg-rose-50/90"
             : isDragOver
-            ? "border-accent bg-sky-50/90 ring-2 ring-accent/30"
-            : "border-slate-200/80"
+            ? "border-accent bg-white/70 ring-2 ring-accent/30"
+            : "hover:border-white/90"
         }`}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
       >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".tif,.tiff"
-          className="hidden"
-          onChange={handleFileInput}
-        />
+        {/* Collapse toggle */}
+        <button
+          type="button"
+          onClick={() => setIsCollapsed(true)}
+          className="absolute top-3 right-3 text-secondary/60 hover:text-primary p-1 rounded-full transition-colors"
+          title="Minimize dropzone"
+        >
+          <ChevronUp className="w-4 h-4 rotate-180" />
+        </button>
 
-        {/* Collapsible toggle if asset already exists */}
-        {assetId && !isUploading && (
-          <button
-            type="button"
-            onClick={() => setIsCollapsed(true)}
-            className="absolute top-3 right-3 text-slate-400 hover:text-slate-600 p-1 rounded-full"
-            title="Minimize"
-          >
-            <ChevronUp className="w-3.5 h-3.5 rotate-180" />
-          </button>
-        )}
-
-        {/* Upload in progress state */}
+        {/* Upload active state */}
         {isUploading && uploadProgress && currentFile && (
           <UploadProgress
             filename={currentFile.name}
@@ -172,62 +159,63 @@ export const UploadDropzone: React.FC = () => {
           />
         )}
 
-        {/* Success state */}
+        {/* Success confirmation */}
         {successMessage && !isUploading && (
-          <div className="flex items-start gap-2.5 text-xs text-emerald-800 animate-fade-in-up">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-medium text-slate-900">{successMessage}</p>
-              <p className="text-[11px] text-emerald-700 mt-0.5">Map view centered on new bounding box.</p>
-            </div>
+          <div className="flex items-center gap-2 text-xs text-emerald-800 font-medium">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{successMessage}</span>
           </div>
         )}
 
-        {/* Error state with retry */}
+        {/* Error alert with retry */}
         {errorMessage && !isUploading && (
-          <div className="space-y-3 animate-fade-in-up">
+          <div className="space-y-3">
             <div className="flex items-start gap-2 text-xs text-rose-800">
               <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-              <p className="leading-snug">{errorMessage}</p>
+              <span>{errorMessage}</span>
             </div>
-            <div className="flex items-center gap-2 pt-1">
+            <div className="flex gap-2">
               <Button size="sm" variant="danger" onClick={handleRetry} className="text-xs">
                 <RefreshCw className="w-3 h-3 mr-1" />
                 Retry Ingestion
               </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  setErrorMessage(null);
-                  setCurrentFile(null);
-                }}
-                className="text-xs text-slate-600 hover:text-slate-900"
-              >
+              <Button size="sm" variant="ghost" onClick={() => setErrorMessage(null)} className="text-xs">
                 Dismiss
               </Button>
             </div>
           </div>
         )}
 
-        {/* Idle dropzone state */}
+        {/* Default idle dropzone */}
         {!isUploading && !errorMessage && !successMessage && (
           <div
-            className="flex flex-col items-center justify-center text-center cursor-pointer py-2 group"
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
+            className="flex flex-col items-center justify-center p-5 text-center cursor-pointer rounded-2xl border-2 border-dashed border-stone-300/80 hover:border-accent hover:bg-white/40 transition-all duration-200 ease-apple group"
           >
-            <div className="w-11 h-11 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 group-hover:text-black group-hover:scale-105 transition-all mb-3 shadow-inner">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".tif,.tiff,image/*"
+              className="hidden"
+              onChange={handleFileInput}
+            />
+
+            <div className="w-10 h-10 rounded-full bg-sand-100 flex items-center justify-center text-secondary group-hover:text-accent group-hover:scale-110 transition-all duration-200 ease-apple mb-3">
               <UploadCloud className="w-5 h-5" />
             </div>
-            <p className="font-serif text-base text-slate-900 tracking-wide font-medium">
-              Drop Multi-band .tif or Click to Browse
+
+            <p className="font-serif text-sm text-primary font-medium mb-1">
+              Ingest Satellite GeoTIFF
             </p>
-            <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
-              Direct streaming ingest to FastAPI (500MB+ supported)
+            <p className="text-[11px] text-secondary leading-relaxed max-w-[200px]">
+              Drag & drop .tif / .tiff file here, or click to browse
             </p>
-            <div className="flex items-center gap-1.5 mt-3 text-[10px] text-slate-400 font-mono">
+            <div className="mt-3 flex items-center gap-1.5 text-[10px] font-mono text-secondary/60">
               <FileSpreadsheet className="w-3 h-3" />
-              <span>GEOTIFF / COG • EPSG:4326</span>
+              <span>COG & multi-band supported (500MB)</span>
             </div>
           </div>
         )}
