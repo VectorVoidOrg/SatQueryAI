@@ -7,7 +7,7 @@ import { HistorySidebar } from "@/components/history/HistorySidebar";
 import { ProfileModal } from "@/components/profile/ProfileModal";
 import { useSessionStore } from "@/store/useSessionStore";
 import { useProfileStore } from "@/store/useProfileStore";
-import { Globe, Clock, Plus, User } from "lucide-react";
+import { Globe, Clock, Plus, User, LogIn } from "lucide-react";
 import Link from "next/link";
 
 export default function HomePage() {
@@ -44,7 +44,7 @@ export default function HomePage() {
           </span>
         </Link>
 
-        {/* Right: History, New Chat, Profile Avatar */}
+        {/* Right: History, New Chat, Flashing Login, Profile Avatar */}
         <div className="flex items-center gap-3">
           {/* History Button (opens collapsible sidebar) */}
           <button
@@ -67,12 +67,23 @@ export default function HomePage() {
             <span>New Analysis</span>
           </button>
 
+          {/* Flashing Corner Login Button */}
+          <Link
+            href="/login"
+            className="relative flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold text-white bg-slate-900 hover:bg-black transition-all shadow-md animate-pulse hover:animate-none group overflow-hidden"
+            title="Sign In / Register Account"
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <LogIn className="w-3.5 h-3.5 text-slate-300 group-hover:text-white transition-colors" />
+            <span>Login</span>
+          </Link>
+
           {/* User Profile Avatar (opens profile pop-up) */}
           <button
             type="button"
             onClick={() => setProfileModalOpen(true)}
             className="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center font-serif text-sm font-semibold hover:bg-black hover:scale-105 transition-all shadow-sm ring-2 ring-slate-200"
-            title={`Logged in as ${profile.name}`}
+            title={`Logged in as ${profile.name || "User"}`}
           >
             {profile.name ? profile.name.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
           </button>
