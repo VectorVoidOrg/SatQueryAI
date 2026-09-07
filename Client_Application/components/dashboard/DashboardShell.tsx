@@ -2,6 +2,7 @@
 
 import React, { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAssetStore } from "@/store/useAssetStore";
 import { useChatStore } from "@/store/useChatStore";
 import { useSessionStore } from "@/store/useSessionStore";
@@ -28,12 +29,22 @@ interface DashboardShellProps {
 }
 
 export const DashboardShell: React.FC<DashboardShellProps> = ({ sessionId: propSessionId }) => {
+  const router = useRouter();
   const { assetName } = useAssetStore();
   const { sessionId: currentSessionId } = useChatStore();
   const { getSession, setActiveSessionId, setHistorySidebarOpen } = useSessionStore();
-  const { profile, setProfileModalOpen } = useProfileStore();
+  const { profile, isAuthenticated, setProfileModalOpen } = useProfileStore();
 
   const displaySessionId = propSessionId || currentSessionId;
+
+  useEffect(() => {
+    if (isAuthenticated) return;
+
+    const anonymousSessionId = localStorage.getItem("satquery_anonymous_session_id");
+    if (anonymousSessionId !== propSessionId) {
+      router.replace(`/login?returnTo=${encodeURIComponent(window.location.pathname)}`);
+    }
+  }, [isAuthenticated, propSessionId, router]);
 
   // Hydrate session data if propSessionId is provided
   useEffect(() => {
@@ -76,7 +87,7 @@ export const DashboardShell: React.FC<DashboardShellProps> = ({ sessionId: propS
           {/* Left: Back to Home + Logo */}
           <div className="flex items-center gap-3">
             <Link
-              href="/"
+              href={isAuthenticated ? "/" : "/login?returnTo=/"}
               className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-900 font-medium px-2.5 py-1 rounded-full hover:bg-slate-100 transition-colors"
               title="Return to Home Prompt"
             >

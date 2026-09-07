@@ -2,13 +2,14 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Globe, ArrowLeft, Mail, Lock, User, Sparkles, ArrowRight, ShieldCheck } from "lucide-react";
 import { useProfileStore } from "@/store/useProfileStore";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { updateProfile } = useProfileStore();
+  const searchParams = useSearchParams();
+  const { updateProfile, setAuthenticated } = useProfileStore();
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
@@ -16,24 +17,41 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    setTimeout(() => {
-      const displayName = isSignUp
-        ? name || "Researcher"
-        : email.split("@")[0] || "Researcher";
-
-      updateProfile({
-        name: displayName.charAt(0).toUpperCase() + displayName.slice(1),
-        email: email || "dhawal@satquery.ai",
-        role: "Geospatial Analyst",
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: isSignUp ? "signup" : "login",
+          name,
+          email,
+          password,
+        }),
       });
 
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error?.message || "Authentication failed.");
+      }
+
+      const displayName = result.user?.name || name || email.split("@")[0] || "Researcher";
+      updateProfile({
+        name: displayName.charAt(0).toUpperCase() + displayName.slice(1),
+        email: result.user?.email || email,
+        role: result.user?.role || "Geospatial Analyst",
+      });
+      setAuthenticated(true);
+
+      router.push(searchParams.get("returnTo") || "/analysis/c_sundarbans_demo");
+    } catch (error) {
+      console.error("Authentication request failed", error);
+    } finally {
       setLoading(false);
-      router.push("/analysis/c_sundarbans_demo");
-    }, 600);
+    }
   };
 
   return (

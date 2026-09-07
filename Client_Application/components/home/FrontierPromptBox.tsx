@@ -4,7 +4,17 @@ import React, { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Paperclip, X, FileSpreadsheet, Loader2, Sparkles, Image as ImageIcon } from "lucide-react";
 import { useSessionStore } from "@/store/useSessionStore";
+import { useProfileStore } from "@/store/useProfileStore";
+import { AuditRecord } from "@/lib/types/chat";
 import { validateTiffFile } from "@/lib/api/ingestClient";
+
+interface QueryResponse {
+  text?: string;
+  evidence?: GeoJSON.FeatureCollection;
+  audit?: AuditRecord;
+  bbox?: [number, number, number, number];
+  assetName?: string;
+}
 
 interface FrontierPromptBoxProps {
   value: string;
@@ -14,6 +24,7 @@ interface FrontierPromptBoxProps {
 export const FrontierPromptBox: React.FC<FrontierPromptBoxProps> = ({ value, onChange }) => {
   const router = useRouter();
   const { createSession } = useSessionStore();
+  const { isAuthenticated } = useProfileStore();
 
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -60,8 +71,13 @@ export const FrontierPromptBox: React.FC<FrontierPromptBoxProps> = ({ value, onC
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if ((!value.trim() && !attachedFile) || isSubmitting) return;
+    if (!isAuthenticated && localStorage.getItem("satquery_has_started_analysis") === "true") {
+      router.push("/login");
+      return;
+    }
 
     setIsSubmitting(true);
+    localStorage.setItem("satquery_has_started_analysis", "true");
     const queryPrompt = value.trim() || "Analyze attached satellite imagery for surface and structural changes.";
 
     try {
@@ -77,7 +93,7 @@ export const FrontierPromptBox: React.FC<FrontierPromptBoxProps> = ({ value, onC
         body: formData,
       });
 
-      let responseData: any = {};
+      let responseData: QueryResponse = {};
       if (response.ok) {
         responseData = await response.json();
       }
@@ -92,6 +108,7 @@ export const FrontierPromptBox: React.FC<FrontierPromptBoxProps> = ({ value, onC
         bbox: responseData.bbox,
         assetName: responseData.assetName,
       });
+      localStorage.setItem("satquery_anonymous_session_id", newSessionId);
 
       // 3. Smooth transition to dedicated analysis page with unique ID
       router.push(`/analysis/${newSessionId}`);
@@ -102,6 +119,7 @@ export const FrontierPromptBox: React.FC<FrontierPromptBoxProps> = ({ value, onC
         prompt: queryPrompt,
         attachedFileName: attachedFile?.name,
       });
+      localStorage.setItem("satquery_anonymous_session_id", newSessionId);
       router.push(`/analysis/${newSessionId}`);
     }
   };
