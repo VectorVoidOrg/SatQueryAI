@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { sendChatQuery } from "@/lib/api/middlewareClient";
 
-export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const sessionId = params.id;
   return NextResponse.json({
     sessionId,
@@ -25,10 +23,8 @@ export async function GET(
   });
 }
 
-export async function POST(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const sessionId = params.id;
     const body = await req.json();
