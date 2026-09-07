@@ -41,6 +41,26 @@ function MapViewController({
   const prevEvidenceRef = useRef<GeoJSON.FeatureCollection | null>(null);
 
   useEffect(() => {
+    const updateMinimumWorldZoom = () => {
+      const size = map.getSize();
+      const viewportDimension = Math.max(size.x, size.y);
+      const minimumZoom = Math.max(0, Math.ceil(Math.log2(viewportDimension / 256)));
+
+      map.setMinZoom(minimumZoom);
+      if (map.getZoom() < minimumZoom) {
+        map.setZoom(minimumZoom, { animate: false });
+      }
+    };
+
+    updateMinimumWorldZoom();
+    map.on("resize", updateMinimumWorldZoom);
+
+    return () => {
+      map.off("resize", updateMinimumWorldZoom);
+    };
+  }, [map]);
+
+  useEffect(() => {
     if (!bbox || !map) return;
     const bboxKey = bbox.join(",");
     if (prevBboxRef.current === bboxKey) return;
@@ -97,6 +117,9 @@ export const MapCanvas: React.FC = () => {
       <MapContainer
         center={initialCenter}
         zoom={11}
+        maxBounds={[[-85.05112878, -180], [85.05112878, 180]]}
+        maxBoundsViscosity={1}
+        worldCopyJump={false}
         zoomControl={false}
         className="w-full h-full z-0"
         style={{ width: "100%", height: "100%", background: "#E2E8F0" }}

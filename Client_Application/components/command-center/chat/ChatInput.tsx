@@ -2,16 +2,24 @@
 
 import React, { useState, useRef } from "react";
 import { ArrowRight, Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useChatStore } from "@/store/useChatStore";
+import { useProfileStore } from "@/store/useProfileStore";
 
 export const ChatInput: React.FC = () => {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const router = useRouter();
 
   const { sendMessage, isSending } = useChatStore();
+  const { isAuthenticated } = useProfileStore();
 
   const handleSend = () => {
     if (!input.trim() || isSending) return;
+    if (!isAuthenticated) {
+      router.push(`/login?returnTo=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
     sendMessage(input);
     setInput("");
     if (textareaRef.current) {

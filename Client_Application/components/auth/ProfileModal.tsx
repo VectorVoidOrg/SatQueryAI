@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useProfileStore } from "@/store/useProfileStore";
-import { X, User, Mail, Shield, Check, Save } from "lucide-react";
+import { X, User, Mail, Shield, Check, Save, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const ProfileModal: React.FC = () => {
-  const { profile, isProfileModalOpen, setProfileModalOpen, updateProfile } = useProfileStore();
+  const router = useRouter();
+  const { profile, isProfileModalOpen, setProfileModalOpen, setAuthenticated, updateProfile } = useProfileStore();
 
   const [name, setName] = useState(profile.name);
   const [email, setEmail] = useState(profile.email);
@@ -23,6 +25,15 @@ export const ProfileModal: React.FC = () => {
       setSavedSuccess(false);
       setProfileModalOpen(false);
     }, 900);
+  };
+
+  const handleLogout = () => {
+    setAuthenticated(false);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("satquery_anonymous_session_id");
+    }
+    setProfileModalOpen(false);
+    router.replace("/login");
   };
 
   return (
@@ -103,7 +114,19 @@ export const ProfileModal: React.FC = () => {
           </div>
 
           {/* Buttons */}
-          <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-slate-100">
+          <div className="flex items-center justify-between gap-2.5 pt-4 border-t border-slate-100">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleLogout}
+              className="text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+            >
+              <LogOut className="w-3.5 h-3.5 mr-1.5" />
+              <span>Log out</span>
+            </Button>
+
+            <div className="flex items-center gap-2.5">
             <Button
               type="button"
               variant="ghost"
@@ -131,6 +154,7 @@ export const ProfileModal: React.FC = () => {
                 </>
               )}
             </Button>
+            </div>
           </div>
         </form>
       </div>

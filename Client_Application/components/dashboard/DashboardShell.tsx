@@ -1,3 +1,1 @@
-import { DashboardShell } from "@/components/chat/DashboardShell";
-export { DashboardShell };
-export default DashboardShell;
+export { DashboardShell } from "@/components/chat/DashboardShell";
