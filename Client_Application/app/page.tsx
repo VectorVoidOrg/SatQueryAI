@@ -4,16 +4,13 @@ import React, { useState } from "react";
 import { FrontierHero } from "@/components/home/FrontierHero";
 import { FrontierPromptBox } from "@/components/home/FrontierPromptBox";
 import { HistorySidebar } from "@/components/history/HistorySidebar";
-import { ProfileModal } from "@/components/profile/ProfileModal";
 import { useSessionStore } from "@/store/useSessionStore";
-import { useProfileStore } from "@/store/useProfileStore";
-import { Globe, Clock, Plus, User, LogIn } from "lucide-react";
+import { Globe, Clock, Plus, LogIn } from "lucide-react";
 import Link from "next/link";
 
 export default function HomePage() {
   const [prompt, setPrompt] = useState("");
   const { setHistorySidebarOpen } = useSessionStore();
-  const { profile, setProfileModalOpen } = useProfileStore();
 
   const handleSelectSuggestion = (query: string) => {
     setPrompt(query);
@@ -44,7 +41,7 @@ export default function HomePage() {
           </span>
         </Link>
 
-        {/* Right: History, New Chat, Flashing Login, Profile Avatar */}
+        {/* Right: History, New Chat, and Login */}
         <div className="flex items-center gap-3">
           {/* History Button (opens collapsible sidebar) */}
           <button
@@ -78,15 +75,6 @@ export default function HomePage() {
             <span>Login</span>
           </Link>
 
-          {/* User Profile Avatar (opens profile pop-up) */}
-          <button
-            type="button"
-            onClick={() => setProfileModalOpen(true)}
-            className="w-9 h-9 rounded-full bg-slate-900 text-white flex items-center justify-center font-serif text-sm font-semibold hover:bg-black hover:scale-105 transition-all shadow-sm ring-2 ring-slate-200"
-            title={`Logged in as ${profile.name || "User"}`}
-          >
-            {profile.name ? profile.name.charAt(0).toUpperCase() : <User className="w-4 h-4" />}
-          </button>
         </div>
       </header>
 
@@ -109,8 +97,6 @@ export default function HomePage() {
       {/* Collapsible History Sidebar */}
       <HistorySidebar />
 
-      {/* Profile Settings Modal */}
-      <ProfileModal />
     </div>
   );
 }

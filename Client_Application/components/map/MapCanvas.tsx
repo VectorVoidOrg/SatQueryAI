@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -18,13 +18,13 @@ import "leaflet/dist/leaflet.css";
 
 // Fix for Leaflet default marker icons
 try {
-  delete (L.Icon.Default.prototype as any)._getIconUrl;
+  delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
   L.Icon.Default.mergeOptions({
     iconRetinaUrl: "https://unpkg.com",
     iconUrl: "https://unpkg.com",
     shadowUrl: "https://unpkg.com",
   });
-} catch (e) {
+} catch {
   // Non-browser fallback
 }
 
@@ -83,28 +83,11 @@ function MapViewController({
 
 export const MapCanvas: React.FC = () => {
   const { bbox, evidence, activeLayers, layerOpacity, layerSources } = useAssetStore();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Compute center safely based on available bounding box arrays
   const initialCenter: [number, number] = bbox && bbox.length >= 4
     ? [(bbox[1] + bbox[3]) / 2, (bbox[0] + bbox[2]) / 2]
     : [21.83, 88.22];
-
-  // Generates a unique component identity key based on spatial configuration.
-  // This explicitly signals React to destroy the canvas instance and avoid container conflicts.
-  const mapKey = bbox && bbox.length >= 4 ? bbox.join(",") : "global-canvas-viewport";
-
-  if (!mounted) {
-    return (
-      <div className="relative w-full h-full min-h-[500px] bg-slate-100 flex items-center justify-center text-xs font-mono text-slate-400">
-        Initializing Spatial Viewport...
-      </div>
-    );
-  }
 
   return (
     <div
@@ -112,7 +95,6 @@ export const MapCanvas: React.FC = () => {
       className="relative w-full h-full min-h-[500px] overflow-hidden bg-slate-100 select-none"
     >
       <MapContainer
-        key={mapKey}
         center={initialCenter}
         zoom={11}
         zoomControl={false}

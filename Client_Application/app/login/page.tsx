@@ -32,7 +32,7 @@ export default function LoginPage() {
       });
 
       setLoading(false);
-      router.push("/");
+      router.push("/analysis/c_sundarbans_demo");
     }, 600);
   };
 
