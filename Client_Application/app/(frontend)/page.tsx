@@ -2,7 +2,12 @@
 
 import React, { useState } from "react";
 import { FrontierHero } from "@/components/home/FrontierHero";
-import { FrontierPromptBox } from "@/components/home/FrontierPromptBox";
+import {
+  FRONT_PAGE_LOADING_DURATION,
+  FRONT_PAGE_LOADING_STATES,
+  FrontierPromptBox,
+} from "@/components/home/FrontierPromptBox";
+import { MultiStepLoader } from "@/components/ui/multi-step-loader";
 import { HistorySidebar } from "@/components/history/HistorySidebar";
 import { ProfileModal } from "@/components/auth/ProfileModal";
 import { useSessionStore } from "@/store/useSessionStore";
@@ -22,6 +27,12 @@ export default function HomePage() {
 
   return (
     <div className="relative min-h-screen w-screen bg-[#FAF6F0] text-[#1C1917] flex flex-col justify-between overflow-x-hidden selection:bg-accent/20 selection:text-primary">
+      <MultiStepLoader
+        loadingStates={FRONT_PAGE_LOADING_STATES}
+        loading={isTransitioning}
+        duration={FRONT_PAGE_LOADING_DURATION}
+      />
+
       {/* Warm Still-life photo background softly diffused behind frosted glass */}
       <div
         className="fixed inset-0 pointer-events-none bg-cover bg-center bg-no-repeat opacity-35 scale-[1.02]"

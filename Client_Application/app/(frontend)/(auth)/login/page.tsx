@@ -8,7 +8,7 @@ import { useProfileStore } from "@/store/useProfileStore";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { updateProfile } = useProfileStore();
+  const { updateProfile, setAuthenticated } = useProfileStore();
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
@@ -16,24 +16,44 @@ export default function LoginPage() {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    setTimeout(() => {
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          name: isSignUp ? name : undefined,
+          mode: isSignUp ? "signup" : "login",
+        }),
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.authenticated || !result.user) {
+        throw new Error(result.error?.message || "Authentication failed.");
+      }
+
+      const user = result.user;
       const displayName = isSignUp
-        ? name || "Researcher"
-        : email.split("@")[0] || "Researcher";
+        ? user.name || name || "Researcher"
+        : user.name || email.split("@")[0] || "Researcher";
 
       updateProfile({
         name: displayName.charAt(0).toUpperCase() + displayName.slice(1),
-        email: email || "dhawal@satquery.ai",
-        role: "Geospatial Analyst",
+        email: user.email || email,
+        role: user.role || "Geospatial Analyst",
       });
+      setAuthenticated(true);
 
-      setLoading(false);
       router.push("/chat");
-    }, 600);
+    } catch (error) {
+      console.error("Authentication failed", error);
+      setLoading(false);
+    }
   };
 
   return (

@@ -6,6 +6,15 @@ import { ArrowRight, Paperclip, X, FileSpreadsheet, Loader2, Sparkles, Image as 
 import { useSessionStore } from "@/store/useSessionStore";
 import { validateTiffFile } from "@/lib/api/ingestClient";
 
+export const FRONT_PAGE_LOADING_DURATION = 900;
+export const FRONT_PAGE_LOADING_STATES = [
+  { text: "Preparing satellite imagery" },
+  { text: "Calibrating optical and SAR layers" },
+  { text: "Running geospatial change detection" },
+  { text: "Reasoning over spatial evidence" },
+  { text: "Composing analysis response" },
+];
+
 interface FrontierPromptBoxProps {
   value: string;
   onChange: (val: string) => void;
@@ -80,6 +89,9 @@ export const FrontierPromptBox: React.FC<FrontierPromptBoxProps> = ({
 
     // Snappy normal submission delay for smooth tactile feedback
     const minDelay = new Promise((resolve) => setTimeout(resolve, 250));
+    const loaderDelay = new Promise((resolve) =>
+      setTimeout(resolve, FRONT_PAGE_LOADING_DURATION * FRONT_PAGE_LOADING_STATES.length),
+    );
 
     try {
       // 1. Send data to /api/query endpoint
@@ -94,7 +106,7 @@ export const FrontierPromptBox: React.FC<FrontierPromptBoxProps> = ({
         body: formData,
       });
 
-      const [response] = await Promise.all([fetchPromise, minDelay]);
+      const [response] = await Promise.all([fetchPromise, minDelay, loaderDelay]);
 
       let responseData: any = {};
       if (response.ok) {
@@ -116,7 +128,7 @@ export const FrontierPromptBox: React.FC<FrontierPromptBoxProps> = ({
       navigateToAnalysis(newSessionId);
     } catch (err) {
       console.warn("API call failed, generating local session:", err);
-      await minDelay;
+      await Promise.all([minDelay, loaderDelay]);
       // Fallback local session generation
       const newSessionId = createSession({
         prompt: queryPrompt,

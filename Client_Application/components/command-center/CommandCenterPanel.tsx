@@ -6,15 +6,26 @@ import { ChatThread } from "@/components/command-center/chat/ChatThread";
 import { ChatInput } from "@/components/command-center/chat/ChatInput";
 import { AuditTab } from "@/components/command-center/audit/AuditTab";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MultiStepLoader as Loader } from "@/components/ui/multi-step-loader";
 import { MessageSquare, BarChart3, Bot } from "lucide-react";
 
+const loadingStates = [
+  { text: "Preparing satellite imagery" },
+  { text: "Calibrating optical and SAR layers" },
+  { text: "Running geospatial change detection" },
+  { text: "Reasoning over spatial evidence" },
+  { text: "Composing analysis response" },
+];
+
 export const CommandCenterPanel: React.FC = () => {
-  const { activeTab, setActiveTab, latestAudit, messages } = useChatStore();
+  const { activeTab, setActiveTab, latestAudit, messages, isSending } = useChatStore();
 
   const hasAuditAvailable = !!latestAudit || messages.some((m) => !!m.metrics);
 
   return (
     <div className="flex flex-col h-full w-full bg-transparent text-primary overflow-hidden">
+      <Loader loadingStates={loadingStates} loading={isSending} duration={1200} loop />
+
       {/* Panel Header & Tabs */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-stone-200/60 bg-white/40 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-2.5">
