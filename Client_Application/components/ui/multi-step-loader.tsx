@@ -55,20 +55,20 @@ function LoaderCore({ loadingStates, value }: { loadingStates: LoadingState[]; v
           >
             <div>
               {index > value ? (
-                <CheckIcon className="text-slate-400" />
+                <CheckIcon className="text-[#AE9372]" />
               ) : (
                 <CheckFilled
                   className={cn(
-                    "text-slate-500",
-                    value === index && "text-sky-500",
+                    "text-[#7F4B30]",
+                    value === index && "text-[#C86D3B]",
                   )}
                 />
               )}
             </div>
             <span
               className={cn(
-                "text-sm text-slate-500",
-                value === index && "font-medium text-sky-600",
+                "text-sm text-[#7F4B30]/70",
+                value === index && "font-medium text-[#7F4B30]",
               )}
             >
               {loadingState.text}

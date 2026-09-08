@@ -45,10 +45,19 @@ export function applyLeafletContainerPatch() {
 
   const originalRemove = MapProto.remove;
   MapProto.remove = function () {
-    if (this._container) {
-      delete (this._container as any)._leaflet_map;
-      delete (this._container as any)._leaflet_id;
+    const container = this._container;
+
+    // A newer map may already own this DOM node after a route remount.
+    // Leaflet's original remove() rejects stale instances, so treat them as
+    // already removed instead of deleting the current map's ownership data.
+    if (container && (container as any)._leaflet_map && (container as any)._leaflet_map !== this) {
+      return this;
     }
-    return originalRemove.call(this);
+
+    const result = originalRemove.call(this);
+    if (container && (container as any)._leaflet_map === this) {
+      delete (container as any)._leaflet_map;
+    }
+    return result;
   };
 }
