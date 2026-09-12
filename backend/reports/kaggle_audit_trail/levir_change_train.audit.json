@@ -1,0 +1,51 @@
+{
+  "seen": 637,
+  "emitted": 637,
+  "dropped": {
+    "class_balance_unchanged_pairs": 0
+  },
+  "tasks": {
+    "change_vqa": 1911
+  },
+  "distinct_images": 1274,
+  "hard_drop_rate": 0.0,
+  "contamination_drops": 0,
+  "top_answers": [
+    [
+      "yes",
+      572
+    ],
+    [
+      "Buildings were constr...",
+      572
+    ],
+    [
+      "a moderate part of th...",
+      216
+    ],
+    [
+      "a small part of the s...",
+      209
+    ],
+    [
+      "a very small part of ...",
+      136
+    ],
+    [
+      "no change",
+      66
+    ],
+    [
+      "no",
+      65
+    ],
+    [
+      "There is no annotated...",
+      65
+    ],
+    [
+      "a large part of the s...",
+      10
+    ]
+  ]
+}

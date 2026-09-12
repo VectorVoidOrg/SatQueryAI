@@ -1,0 +1,136 @@
+{
+  "seen": 900,
+  "emitted": 848,
+  "dropped": {
+    "lulc_nodata_class_0": 40,
+    "lulc_nodata_partial": 12
+  },
+  "tasks": {
+    "cross_modal": 1696
+  },
+  "distinct_images": 1696,
+  "hard_drop_rate": 0.0,
+  "contamination_drops": 0,
+  "top_answers": [
+    [
+      "This scene is predomi...",
+      239
+    ],
+    [
+      "This scene contains c...",
+      212
+    ],
+    [
+      "This scene contains r...",
+      190
+    ],
+    [
+      "rangeland",
+      106
+    ],
+    [
+      "This scene contains t...",
+      102
+    ],
+    [
+      "This scene contains b...",
+      97
+    ],
+    [
+      "crops and built area",
+      61
+    ],
+    [
+      "rangeland and trees",
+      51
+    ],
+    [
+      "rangeland and crops",
+      48
+    ],
+    [
+      "water",
+      48
+    ],
+    [
+      "crops",
+      46
+    ],
+    [
+      "crops and trees",
+      36
+    ],
+    [
+      "crops, built area and...",
+      35
+    ],
+    [
+      "crops and rangeland",
+      34
+    ],
+    [
+      "trees and rangeland",
+      28
+    ],
+    [
+      "trees",
+      27
+    ],
+    [
+      "rangeland, trees and ...",
+      25
+    ],
+    [
+      "rangeland, crops and ...",
+      23
+    ],
+    [
+      "built area, trees and...",
+      22
+    ],
+    [
+      "bare ground and range...",
+      17
+    ],
+    [
+      "built area and rangel...",
+      16
+    ],
+    [
+      "rangeland and bare gr...",
+      15
+    ],
+    [
+      "trees, rangeland and ...",
+      15
+    ],
+    [
+      "rangeland, built area...",
+      12
+    ],
+    [
+      "trees and built area",
+      12
+    ],
+    [
+      "trees and crops",
+      10
+    ],
+    [
+      "crops, rangeland and ...",
+      10
+    ],
+    [
+      "built area and trees",
+      8
+    ],
+    [
+      "This scene contains w...",
+      8
+    ],
+    [
+      "crops, rangeland, bui...",
+      8
+    ]
+  ]
+}
