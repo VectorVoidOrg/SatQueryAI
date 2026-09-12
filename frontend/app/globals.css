@@ -1,0 +1,660 @@
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .liquid-glass {
+    background: rgba(255, 255, 255, 0.52);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    box-shadow: 0 20px 45px -12px rgba(78, 59, 42, 0.12),
+                inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.95),
+                inset 0 -1px 2px 0 rgba(0, 0, 0, 0.03),
+                inset 0 0 20px 0 rgba(255, 255, 255, 0.25);
+    position: relative;
+  }
+
+  .liquid-glass::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.80) 0%,
+      rgba(255, 255, 255, 0.25) 40%,
+      rgba(200, 109, 59, 0.06) 100%
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .liquid-glass-subtle {
+    background: rgba(255, 255, 255, 0.38);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.85),
+                0 4px 14px rgba(78, 59, 42, 0.05);
+  }
+
+  /* Realistic tactile frosted glass card in Dune palette */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.52);
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    box-shadow: 0 24px 50px -12px rgba(78, 59, 42, 0.12),
+                inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.95),
+                inset 0 -1px 2px 0 rgba(0, 0, 0, 0.03),
+                inset 0 0 24px 0 rgba(255, 255, 255, 0.25);
+  }
+
+  /* High-end floating glass pill in Dune palette */
+  .glass-pill {
+    background: rgba(255, 255, 255, 0.48);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    box-shadow: 0 12px 32px -6px rgba(78, 59, 42, 0.10),
+                inset 0 1px 1px 0 rgba(255, 255, 255, 0.9),
+                inset 0 0 12px 0 rgba(255, 255, 255, 0.2);
+  }
+
+  /* Subtle inner glass element / input surface */
+  .glass-inner {
+    background: rgba(255, 255, 255, 0.35);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.85),
+                0 2px 8px rgba(78, 59, 42, 0.04);
+  }
+
+  /* Apple-grade smooth micro-interaction */
+  .apple-interactive {
+    transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+                background-color 220ms cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 220ms cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1),
+                color 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .apple-interactive:hover {
+    transform: translateY(-1px);
+  }
+
+  .apple-interactive:active {
+    transform: translateY(0px) scale(0.99);
+  }
+
+  /* GLASSMORTISIN: Deeply frosted luxury satin glass drawer panel in Dune palette */
+  .glassmortisin-drawer {
+    background: rgba(250, 246, 240, 0.94);
+    backdrop-filter: blur(36px) saturate(190%);
+    -webkit-backdrop-filter: blur(36px) saturate(190%);
+    border-left: 1px solid rgba(255, 255, 255, 0.85);
+    box-shadow: -24px 0 60px rgba(78, 59, 42, 0.14),
+                inset 1px 0 1.5px 0 rgba(255, 255, 255, 0.95);
+  }
+
+  /* GLASSMORTISIN: Translucent card & textbox with velvety top sheen and tactile depth */
+  .glassmortisin-card {
+    position: relative;
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    box-shadow: 0 4px 16px rgba(78, 59, 42, 0.04),
+                inset 0 1px 1px 0 rgba(255, 255, 255, 0.95),
+                inset 0 -1px 1px 0 rgba(0, 0, 0, 0.02);
+    overflow: hidden;
+  }
+
+  .glassmortisin-card:hover {
+    background: rgba(255, 255, 255, 0.88);
+    border-color: rgba(200, 109, 59, 0.35);
+    box-shadow: 0 8px 24px rgba(78, 59, 42, 0.07),
+                inset 0 1px 1.5px 0 rgba(255, 255, 255, 1);
+  }
+
+  /* Velvety subtle ambient highlight */
+  .glassmortisin-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.35) 0%,
+      rgba(255, 255, 255, 0.05) 50%,
+      transparent 100%
+    );
+    border-radius: inherit;
+  }
+
+  /* GLASSMORTISIN: Main Prompt Box / Input Glass Interior */
+  .glassmortisin-input {
+    position: relative;
+    background: rgba(255, 255, 255, 0.65);
+    backdrop-filter: blur(24px) saturate(185%);
+    -webkit-backdrop-filter: blur(24px) saturate(185%);
+    box-shadow: 0 16px 40px -10px rgba(78, 59, 42, 0.09),
+                inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.95),
+                inset 0 0 20px 0 rgba(255, 255, 255, 0.15);
+  }
+
+  .glassmortisin-input::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.40) 0%,
+      rgba(255, 255, 255, 0.08) 45%,
+      transparent 100%
+    );
+    border-radius: inherit;
+  }
+
+  /* GLASSMORTISIN: Light Grey Chatbox Interior */
+  .glassmortisin-input-grey {
+    position: relative;
+    background: #E5E7EB;
+    backdrop-filter: blur(24px) saturate(185%);
+    -webkit-backdrop-filter: blur(24px) saturate(185%);
+    box-shadow: 0 16px 40px -10px rgba(78, 59, 42, 0.09),
+                inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.6),
+                inset 0 0 20px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .glassmortisin-input-grey::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.25) 0%,
+      rgba(255, 255, 255, 0.05) 45%,
+      transparent 100%
+    );
+    border-radius: inherit;
+  }
+
+  /* GLASSMORTISIN: Chat Input Pill with translucent glass base */
+  .glassmortisin-input-pill {
+    position: relative;
+    background: rgba(255, 255, 255, 0.50);
+    backdrop-filter: blur(24px) saturate(185%);
+    -webkit-backdrop-filter: blur(24px) saturate(185%);
+    box-shadow: 0 8px 24px rgba(78, 59, 42, 0.08),
+                inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.90);
+  }
+
+  /* BORDER-ONLY ROTATING LIGHT CHANNEL:
+     Uses CSS Mask Composite (exclude / xor) so that:
+     1. The entire interior (content-box) is 100% physically masked out (ZERO light inside).
+     2. The outer edge is clipped to border-radius with overflow:hidden (ZERO light outside).
+     3. Light is rendered STRICTLY and EXCLUSIVELY along the 1.5px perimeter border channel.
+  */
+  .border-beam-track {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1.5px;
+    overflow: hidden;
+    pointer-events: none;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    -webkit-mask-clip: content-box, border-box;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    mask-clip: content-box, border-box;
+    z-index: 10;
+  }
+
+  /* Ultra-lightweight, hardware-optimized fade-in (zero GPU strain) */
+  .animate-fade-in {
+    animation: simpleFadeIn 200ms ease-out both;
+  }
+
+  /* PRO Rotating Light Beam */
+  .animate-rotate-beam {
+    animation: rotateBeam 6s linear infinite;
+  }
+
+  .animate-rotate-beam-fast {
+    animation: rotateBeam 3.5s linear infinite;
+  }
+
+  /* Apple-Grade History Drawer Slide-in and Backdrop Fade */
+  .animate-drawer-slide-in {
+    animation: drawerSlideIn 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .animate-backdrop-fade-in {
+    animation: backdropFadeIn 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* Entrance motion classes */
+  .animate-map-reveal {
+    animation: mapReveal 340ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-panel-reveal {
+    animation: panelReveal 380ms cubic-bezier(0.16, 1, 0.3, 1) 60ms both;
+  }
+
+  .animate-navbar-reveal {
+    animation: navbarReveal 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+@keyframes rotateBeam {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes drawerSlideIn {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes backdropFadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes mapReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes panelReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes navbarReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* W3C Native View Transition Support - Silky Cross-Dissolve */
+::view-transition-old(root) {
+  animation: 250ms cubic-bezier(0.16, 1, 0.3, 1) both fadeOutView;
+}
+::view-transition-new(root) {
+  animation: 450ms cubic-bezier(0.16, 1, 0.3, 1) both fadeInView;
+}
+@keyframes fadeOutView {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes fadeInView {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+:root {
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Instrument Serif", serif;
+
+  --color-base: 250 246 240; /* #FAF6F0 */
+  --color-surface: 255 255 255; /* #FFFFFF */
+  --color-surface-elevated: 245 239 230; /* #F5EFE6 */
+  --color-primary: 28 25 23; /* #1C1917 */
+  --color-secondary: 87 83 78; /* #57534E */
+  --color-muted: 132 122 112; /* #847A70 */
+
+  --background: #FAF6F0;
+  --surface: #FFFFFF;
+  --surface-elevated: #F5EFE6;
+  --glass: rgba(255, 255, 255, 0.52);
+  --glass-hover: rgba(255, 255, 255, 0.72);
+  --border: rgba(255, 255, 255, 0.65);
+  --text-primary: #1C1917;
+  --text-secondary: #57534E;
+  --text-muted: #847A70;
+}
+
+.dark {
+  --color-base: 15 14 12; /* #0F0E0C */
+  --color-surface: 23 21 18; /* #171512 */
+  --color-surface-elevated: 31 27 23; /* #1F1B17 */
+  --color-primary: 243 238 231; /* #F3EEE7 */
+  --color-secondary: 184 174 163; /* #B8AEA3 */
+  --color-muted: 145 135 125; /* #91877D */
+
+  --background: #0F0E0C;
+  --surface: #171512;
+  --surface-elevated: #1F1B17;
+  --glass: rgba(23, 21, 18, 0.82);
+  --glass-hover: rgba(31, 27, 23, 0.90);
+  --border: rgba(255, 255, 255, 0.10);
+  --text-primary: #F3EEE7;
+  --text-secondary: #B8AEA3;
+  --text-muted: #91877D;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #FAF6F0;
+  color: #1C1917;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Leaflet Container overrides - Warm dune map canvas */
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+  background-color: #EFE8DE !important;
+  font-family: inherit;
+}
+
+/* Custom scientific feature popup (warm milky glass style) */
+.satquery-feature-popup .leaflet-popup-content-wrapper {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(200, 109, 59, 0.20);
+  border-radius: 14px;
+  box-shadow: 0 16px 36px rgba(78, 59, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  padding: 4px;
+  color: #1C1917;
+}
+
+.satquery-feature-popup .leaflet-popup-content {
+  margin: 8px 10px;
+  line-height: 1.4;
+  color: #1C1917;
+}
+
+.satquery-feature-popup .leaflet-popup-tip {
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.satquery-feature-popup .leaflet-popup-close-button {
+  color: rgba(87, 83, 78, 0.6) !important;
+}
+
+.satquery-feature-popup .leaflet-popup-close-button:hover {
+  color: #1C1917 !important;
+}
+
+/* Custom warm scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(78, 59, 42, 0.18);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(78, 59, 42, 0.32);
+}
+
+/* ============================================================
+   DARK THEME: "SatQueryAI at night"
+   Palette: Warm dark charcoal (#0F0E0C), surface (#171512),
+   elevated (#1F1B17), primary text (#F3EEE7), secondary (#B8AEA3),
+   muted (#91877D), subtle 1px translucent border (white/10),
+   translucent dark warm glass with amber/ochre accents (#C86D3B)
+   ============================================================ */
+
+.dark body {
+  background-color: #0F0E0C;
+  color: #F3EEE7;
+}
+
+/* Dark mode glassmorphism */
+.dark .liquid-glass {
+  background: rgba(23, 21, 18, 0.82);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.45),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+.dark .liquid-glass::before {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.12) 0%,
+    rgba(255, 255, 255, 0.03) 40%,
+    rgba(200, 109, 59, 0.08) 100%
+  );
+}
+
+.dark .liquid-glass-subtle {
+  background: rgba(23, 21, 18, 0.72);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
+              0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+.dark .glass-card {
+  background: rgba(23, 21, 18, 0.82);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.45),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+.dark .glass-pill {
+  background: rgba(31, 27, 23, 0.82);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.35),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+.dark .glass-inner {
+  background: rgba(31, 27, 23, 0.65);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.dark .glassmortisin-drawer {
+  background: rgba(15, 14, 12, 0.97);
+  backdrop-filter: blur(32px) saturate(170%);
+  -webkit-backdrop-filter: blur(32px) saturate(170%);
+  border-left: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: -20px 0 50px rgba(0, 0, 0, 0.5),
+              inset 1px 0 0 0 rgba(255, 255, 255, 0.08);
+}
+
+.dark .glassmortisin-card {
+  background: rgba(23, 21, 18, 0.82);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+.dark .glassmortisin-card:hover {
+  background: rgba(31, 27, 23, 0.90);
+  border-color: rgba(200, 109, 59, 0.35);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.12);
+}
+
+.dark .glassmortisin-input {
+  background: rgba(23, 21, 18, 0.90);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.35),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+.dark .glassmortisin-input-grey {
+  background: #171512;
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.35),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+}
+
+.dark .glassmortisin-input-pill {
+  background: rgba(23, 21, 18, 0.85);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.30),
+              inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Map canvas background */
+.dark .leaflet-container {
+  background-color: #0F0E0C !important;
+}
+
+/* Dark mode scientific feature popup */
+.dark .satquery-feature-popup .leaflet-popup-content-wrapper {
+  background: rgba(23, 21, 18, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(200, 109, 59, 0.35);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  color: #F3EEE7;
+}
+
+.dark .satquery-feature-popup .leaflet-popup-content {
+  color: #F3EEE7;
+}
+
+.dark .satquery-feature-popup .leaflet-popup-tip {
+  background: rgba(23, 21, 18, 0.95);
+}
+
+.dark .satquery-feature-popup .leaflet-popup-close-button {
+  color: #B8AEA3 !important;
+}
+
+.dark .satquery-feature-popup .leaflet-popup-close-button:hover {
+  color: #F3EEE7 !important;
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(200, 109, 59, 0.45);
+}
+
+/* Scientific, restrained reveal for Leaflet GeoJSON evidence vector polygons */
+.leaflet-overlay-pane path {
+  transition: stroke-width 200ms ease-out, fill-opacity 250ms ease-out, stroke-opacity 250ms ease-out;
+  animation: evidenceFadeIn 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: center center;
+}
+
+@keyframes evidenceFadeIn {
+  0% {
+    opacity: 0;
+    stroke-width: 3.5px;
+    filter: brightness(1.22);
+  }
+  45% {
+    opacity: 0.85;
+    stroke-width: 3px;
+    filter: brightness(1.12);
+  }
+  100% {
+    opacity: 1;
+    stroke-width: 2.5px;
+    filter: brightness(1);
+  }
+}
+
+/* Smooth theme transition */
+html, body {
+  transition: background-color 300ms cubic-bezier(0.16, 1, 0.3, 1),
+              color 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.liquid-glass,
+.glass-card,
+.glass-pill,
+.glass-inner,
+.glassmortisin-drawer,
+.glassmortisin-card,
+.glassmortisin-input,
+.glassmortisin-input-grey,
+.glassmortisin-input-pill {
+  transition: background-color 300ms cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 300ms cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 300ms cubic-bezier(0.16, 1, 0.3, 1),
+              color 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Accessibility: Respect Reduced Motion Preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
