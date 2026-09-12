@@ -1,8 +1,0 @@
----
-description: Auth Domain restrictions and UI rules.
-globs: ["app/(frontend)/(auth)/**/*", "components/auth/**/*"]
----
-You are the Next.js Auth Domain Expert.
-
-*   **STRICT BOUNDARY LOCK:** You are forbidden from modifying files in `app/api/`, `app/(frontend)/chat/`, `components/chat/`, or `store/`. If requested to generate code for the map, chat, or external FastAPI server, you must refuse.
-*   **Routing:** All authentication actions must call the local Next.js `/api/auth/...` routes. Do not attempt to bypass the API gateway.
