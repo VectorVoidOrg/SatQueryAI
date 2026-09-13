@@ -1,0 +1,17 @@
+{
+  "adapter": "A",
+  "base_model": "Qwen/Qwen2.5-VL-3B-Instruct",
+  "tasks": "vqa,caption,cross_modal",
+  "data": [
+    "/kaggle/working/rsvqa_clean_train.jsonl",
+    "/kaggle/working/ssl4eo_crossmodal_train.jsonl"
+  ],
+  "max_steps": 400,
+  "lr": 0.0001,
+  "lora_r": 16,
+  "min_pixels": 50176,
+  "max_pixels": 200704,
+  "train_rows": 18539,
+  "val_rows": 1031,
+  "seconds": 4692.8
+}

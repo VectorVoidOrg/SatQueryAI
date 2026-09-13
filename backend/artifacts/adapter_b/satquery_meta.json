@@ -1,0 +1,16 @@
+{
+  "adapter": "B",
+  "base_model": "Qwen/Qwen2.5-VL-3B-Instruct",
+  "tasks": "change_vqa",
+  "data": [
+    "/kaggle/working/levir_change_train.jsonl"
+  ],
+  "max_steps": 400,
+  "lr": 0.0001,
+  "lora_r": 16,
+  "min_pixels": 50176,
+  "max_pixels": 200704,
+  "train_rows": 2721,
+  "val_rows": 138,
+  "seconds": 6311.0
+}

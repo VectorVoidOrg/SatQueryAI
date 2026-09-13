@@ -1,3 +1,13 @@
+# trained weights are large binaries distributed via Kaggle output, not git
+artifacts/adapter_a/*.safetensors
+artifacts/adapter_b/*.safetensors
+artifacts/adapter_*/*.json
+artifacts/adapter_*/*.jinja
+artifacts/adapter_*/tokenizer*
+!artifacts/adapter_*/PUT_ADAPTER_HERE.txt
+.venv/
+__pycache__/
+*.pyc
 # Dependencies
 /node_modules
 /.pnp
@@ -71,3 +81,10 @@ Thumbs.db
 /tmp
 /.temp
 /scratch
+
+
+# Trained adapter weights: ~157 MB each, over GitHub's 100 MB per-file limit.
+# Regenerable from the training notebook / Kaggle zips; serve via ADAPTER_*_PATH.
+backend/artifacts/**/adapter_model.safetensors
+backend/artifacts/**/adapter_model.bin
+backend/artifacts/**/*.zip
