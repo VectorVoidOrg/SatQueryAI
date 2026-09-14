@@ -56,9 +56,6 @@ export const LoaderCore = ({
         const isCompleted = index < value;
         const isUpcoming = index > value;
 
-        // SatQueryAI Dark Theme Hierarchy: Active and Completed: #F3EEE7, Pending: #9F958B
-        const stepColor = isCurrent || isCompleted ? "#F3EEE7" : "#9F958B";
-
         return (
           <motion.div
             key={index}
@@ -69,7 +66,6 @@ export const LoaderCore = ({
               x: 0,
             }}
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            style={{ color: stepColor }}
           >
             <div className="w-5 h-5 flex items-center justify-center shrink-0">
               {isCompleted && (
@@ -81,24 +77,18 @@ export const LoaderCore = ({
                   <span className="w-2.5 h-2.5 rounded-full bg-accent relative shadow-[0_0_8px_rgba(200,109,59,0.8)]" />
                 </div>
               )}
-              {isUpcoming && (
-                <div
-                  className="w-3.5 h-3.5 rounded-full border-2"
-                  style={{ borderColor: "#9F958B" }}
-                />
-              )}
+              {isUpcoming && <div className="h-3.5 w-3.5 rounded-full border-2 border-gray-400 dark:border-gray-500" />}
             </div>
 
             <span
               className={cn(
-                "transition-colors duration-200 tracking-wide",
+                "tracking-wide transition-colors duration-200 text-[#111827] dark:text-[#F3EEE7]",
                 isCurrent
                   ? "font-serif text-base sm:text-lg font-semibold"
                   : isCompleted
                   ? "font-sans text-sm sm:text-base font-medium"
                   : "font-sans text-sm sm:text-base font-normal"
               )}
-              style={{ color: stepColor }}
             >
               {loadingState.text}
             </span>
@@ -192,7 +182,7 @@ export const MultiStepLoader = ({
           onClick={onClose}
         >
           <div
-            className="relative max-w-md w-full liquid-glass rounded-3xl p-6 border border-white/70 dark:border-white/10 shadow-2xl overflow-hidden bg-[#FAF8F5]/95 dark:bg-[#171512]/95"
+            className="relative max-w-md w-full rounded-3xl border border-stone-300/70 bg-[#FAF8F5]/95 p-6 shadow-2xl overflow-hidden dark:border-white/10 dark:bg-[#171512]/95"
             onClick={(e) => e.stopPropagation()}
           >
             {content}

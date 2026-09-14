@@ -32,6 +32,7 @@ export const EnvironmentStatusBadge: React.FC = () => {
 
   return (
     <Tooltip
+      side="bottom"
       content={
         isReady === null
           ? "Checking backend health…"

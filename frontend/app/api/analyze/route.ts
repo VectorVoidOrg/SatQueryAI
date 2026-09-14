@@ -1,12 +1,11 @@
 // frontend/app/api/analyze/route.ts
 // Server-side proxy: receives multipart/form-data from browser, forwards to
 // the FastAPI backend, returns its response verbatim.
-// BACKEND_URL defaults to http://127.0.0.1:8000 (local dev / stub server).
-// For Kaggle tunnels: set BACKEND_URL=https://your-tunnel.trycloudflare.com
+// BACKEND_URL points to the deployed FastAPI service or its Cloudflare tunnel.
 
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
+const BACKEND_URL = (process.env.BACKEND_URL ?? "").replace(/\/$/, "");
 
 export async function POST(req: NextRequest) {
   try {

@@ -6,6 +6,7 @@ import { Globe, ArrowLeft, Loader2, AlertCircle } from "lucide-react";
 import { fetchReportJson } from "@/lib/api/reportClient";
 import { ResultsPanel } from "@/components/results/ResultsPanel";
 import { ThemeToggle } from "@/components/common/ThemeToggle";
+import { ProfileMenu } from "@/components/auth/ProfileMenu";
 import type { AnalyzeResponse } from "@/lib/types/analyze";
 
 interface AnalysisPageProps {
@@ -69,6 +70,7 @@ export default function AnalysisPage({ params }: AnalysisPageProps) {
             <span>New Analysis</span>
           </Link>
           <ThemeToggle />
+            <ProfileMenu />
         </div>
       </header>
 

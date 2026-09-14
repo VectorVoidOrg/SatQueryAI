@@ -1,38 +1,10 @@
 "use client";
 
 import React from "react";
-import { Sparkles, Globe2, Zap, Layers } from "lucide-react";
-
-// Trained query phrasings from backend README §4.1 — use verbatim for best results
-export const TRAINED_PHRASINGS = [
-  {
-    title: "Change Detection",
-    prompt: "Has the built-up area changed between the two images?",
-    icon: "layers",
-    needs: "2 optical + timestamps",
-  },
-  {
-    title: "Scene Description",
-    prompt: "Describe this satellite image in detail.",
-    icon: "globe",
-    needs: "1 image",
-  },
-  {
-    title: "Optical + SAR Fusion",
-    prompt: "Use the optical and SAR images together to identify the land-cover and the built-up and water-covered regions.",
-    icon: "zap",
-    needs: "1 optical + 1 SAR",
-  },
-  {
-    title: "Change Amount",
-    prompt: "How much of the scene changed between the two dates?",
-    icon: "layers",
-    needs: "2 optical + timestamps",
-  },
-];
+import { Sparkles } from "lucide-react";
 
 interface FrontierHeroProps {
-  onSelectSuggestion: (query: string) => void;
+  onSelectSuggestion?: (query: string) => void;
   isTransitioning?: boolean;
 }
 
@@ -67,33 +39,6 @@ export const FrontierHero: React.FC<FrontierHeroProps> = ({
         </h1>
       </div>
 
-      <p className="text-sm text-secondary max-w-lg leading-relaxed font-normal">
-        Upload 1–2 satellite images (optical, SAR, or bi-temporal pair) and ask
-        natural-language questions. The agentic backend selects the right
-        specialist model and returns evidence-grounded answers.
-      </p>
-
-      {/* Suggestion pills — all use REAL trained phrasings */}
-      <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-        {TRAINED_PHRASINGS.map((s, idx) => (
-          <button
-            key={idx}
-            type="button"
-            onClick={() => onSelectSuggestion(s.prompt)}
-            title={`Needs: ${s.needs}`}
-            className="apple-interactive px-3.5 py-1.5 rounded-full text-xs font-medium text-[#7F4B30] dark:text-[#F3EEE7] hover:text-[#FAF6F0] dark:hover:text-white bg-[#E1D9C9]/90 dark:bg-[#1F1B17] hover:bg-[#7F4B30] dark:hover:bg-[#2A241F] border border-[#AE9372]/60 dark:border-white/10 hover:border-[#7F4B30] dark:hover:border-accent/40 hover:-translate-y-[1px] active:scale-[0.99] shadow-[0_4px_14px_rgba(127,75,48,0.08),inset_0_1px_1px_rgba(255,255,255,0.85)] dark:shadow-[0_4px_14px_rgba(0,0,0,0.4),inset_0_1px_1px_rgba(255,255,255,0.08)] flex items-center gap-1.5 group backdrop-blur-md transition-all duration-200 ease-apple"
-          >
-            {s.icon === "layers" ? (
-              <Layers className="w-3 h-3 text-[#B27D57] dark:text-accent group-hover:text-[#FAF6F0] dark:group-hover:text-white transition-colors" />
-            ) : s.icon === "zap" ? (
-              <Zap className="w-3 h-3 text-[#B27D57] dark:text-accent group-hover:text-[#FAF6F0] dark:group-hover:text-white transition-colors" />
-            ) : (
-              <Globe2 className="w-3 h-3 text-[#B27D57] dark:text-accent group-hover:text-[#FAF6F0] dark:group-hover:text-white transition-colors" />
-            )}
-            <span>{s.title}</span>
-          </button>
-        ))}
-      </div>
     </div>
   );
 };

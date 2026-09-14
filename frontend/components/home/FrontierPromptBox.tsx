@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   ArrowRight,
   Paperclip,
@@ -13,12 +13,14 @@ import {
   ChevronUp,
 } from "lucide-react";
 import type { ImageSlot, Modality, AnalyzeFormValues } from "@/lib/types/analyze";
+import { createImagePreview } from "@/lib/imagePreview";
 
 interface FrontierPromptBoxProps {
   value: string;
   onChange: (val: string) => void;
   onSubmitPrompt: (form: AnalyzeFormValues) => Promise<void> | void;
   isSubmitting?: boolean;
+  compact?: boolean;
 }
 
 const MODALITY_OPTIONS: { value: Modality; label: string }[] = [
@@ -35,15 +37,18 @@ function ImageSlotCard({
   onRemove,
   onModalityChange,
   onTimestampChange,
+  preview,
 }: {
   slot: ImageSlot;
   index: number;
   onRemove: () => void;
   onModalityChange: (m: Modality) => void;
   onTimestampChange: (t: string) => void;
+  preview: string | null;
 }) {
   return (
     <div className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-stone-200/50 dark:bg-[#1F1B17] border border-stone-300/60 dark:border-white/10 animate-fade-in-up">
+      {preview ? <img src={preview} alt={`Preview of ${slot.file.name}`} className="max-h-44 w-full rounded-lg bg-black/5 object-contain dark:bg-black/20" /> : <div className="flex h-20 items-center justify-center rounded-lg bg-stone-300/40 text-xs text-secondary dark:bg-black/20">Preparing preview...</div>}
       {/* Filename row */}
       <div className="flex items-center gap-2">
         <FileImage className="w-3.5 h-3.5 text-accent shrink-0" />
@@ -100,15 +105,27 @@ export const FrontierPromptBox: React.FC<FrontierPromptBoxProps> = ({
   onChange,
   onSubmitPrompt,
   isSubmitting = false,
+  compact = false,
 }) => {
   const [images, setImages] = useState<ImageSlot[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [bands, setBands] = useState("1,2,3");
+  const [previews, setPreviews] = useState<Array<string | null>>([]);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void Promise.all(images.map((slot) => createImagePreview(slot.file))).then((nextPreviews) => {
+      if (active) setPreviews(nextPreviews);
+    });
+    return () => {
+      active = false;
+    };
+  }, [images]);
 
   const addFile = (file: File) => {
     setFileError(null);
@@ -172,6 +189,20 @@ export const FrontierPromptBox: React.FC<FrontierPromptBoxProps> = ({
     }
   };
 
+  if (compact) {
+    return (
+      <div className="relative mx-auto w-full max-w-3xl">
+        <div className="flex items-center gap-2 rounded-2xl border border-stone-300/80 bg-[#E5E7EB]/90 p-2 shadow-subtle dark:border-white/10 dark:bg-[#171512]">
+          <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isSubmitting} className="rounded-full p-2 text-secondary transition hover:bg-black/5 hover:text-primary dark:hover:bg-white/10" title="Attach a follow-up image" aria-label="Attach a follow-up image"><Paperclip className="h-4 w-4" /></button>
+          <input ref={fileInputRef} type="file" accept={ACCEPTED_EXTENSIONS} multiple className="hidden" onChange={handleFileInputChange} />
+          <textarea ref={textareaRef} id="satquery-prompt" value={value} onChange={(e) => onChange(e.target.value)} onKeyDown={handleKeyDown} rows={1} disabled={isSubmitting} placeholder="Ask a follow-up..." className="min-h-8 max-h-24 flex-1 resize-none bg-transparent px-1 py-1 text-sm text-primary placeholder:text-secondary/60 focus:outline-none" />
+          <button type="button" onClick={() => handleSubmit()} disabled={!canSubmit} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#7F4B30] text-white transition hover:bg-[#965A3B] disabled:opacity-30" aria-label="Send follow-up"><ArrowRight className="h-4 w-4" /></button>
+        </div>
+        {images.length > 0 && <div className="absolute bottom-full left-2 z-20 mb-2 w-64 rounded-xl border border-stone-300/70 bg-[#FAF6F0] p-3 shadow-xl dark:border-white/10 dark:bg-[#171512]"><p className="mb-2 text-[10px] font-mono uppercase text-secondary">Attached for follow-up</p>{images.map((slot) => <p key={slot.file.name} className="truncate text-xs text-primary">{slot.file.name}</p>)}</div>}
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-2xl mx-auto space-y-2.5">
       {/* Rotating light border container */}
@@ -216,6 +247,7 @@ export const FrontierPromptBox: React.FC<FrontierPromptBoxProps> = ({
                   onRemove={() => removeImage(idx)}
                   onModalityChange={(m) => updateModality(idx, m)}
                   onTimestampChange={(t) => updateTimestamp(idx, t)}
+                  preview={previews[idx] ?? null}
                 />
               ))}
             </div>
@@ -229,6 +261,7 @@ export const FrontierPromptBox: React.FC<FrontierPromptBoxProps> = ({
           {/* Query textarea */}
           <textarea
             ref={textareaRef}
+            id="satquery-prompt"
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}

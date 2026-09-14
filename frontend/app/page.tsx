@@ -2,36 +2,122 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Globe, Plus, Loader2, ArrowLeft } from "lucide-react";
+import { Globe } from "lucide-react";
 import { FrontierHero } from "@/components/home/FrontierHero";
 import { FrontierPromptBox } from "@/components/home/FrontierPromptBox";
-import { ThemeToggle } from "@/components/common/ThemeToggle";
-import { EnvironmentStatusBadge } from "@/components/common/EnvironmentStatusBadge";
 import { ResultsPanel } from "@/components/results/ResultsPanel";
-import { RefusalCard } from "@/components/results/RefusalCard";
+import { MultiStepLoader } from "@/components/ui/multi-step-loader";
+import { SideNavbar } from "@/components/layout/SideNavbar";
+import { ImageWorkspace } from "@/components/results/ImageWorkspace";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { postAnalyze } from "@/lib/api/analyzeClient";
+import { saveAnalysis, saveChatMessage } from "@/lib/history";
+import type { SavedImagePreview } from "@/lib/history";
+import { createImagePreviewData } from "@/lib/imagePreview";
+import { toast } from "@/store/useToastStore";
 import type { AnalyzeFormValues, AnalyzeResponse } from "@/lib/types/analyze";
 
+const ANALYSIS_LOADING_STEPS = [
+  { text: "Uploading imagery and query" },
+  { text: "Preparing spatial analysis pipeline" },
+  { text: "Running specialist VLM inference" },
+  { text: "Cross-checking visual evidence" },
+  { text: "Assembling your answer" },
+] as const;
+const LOADER_STEP_DURATION_MS = 2000;
+const LOADER_MINIMUM_DURATION_MS = ANALYSIS_LOADING_STEPS.length * LOADER_STEP_DURATION_MS;
+
+interface ConversationTurn {
+  query: string;
+  response: AnalyzeResponse;
+  imagePreviews: SavedImagePreview[];
+}
+
+function waitForRemainingLoaderTime(startedAt: number) {
+  const remaining = LOADER_MINIMUM_DURATION_MS - (Date.now() - startedAt);
+  return remaining > 0 ? new Promise<void>((resolve) => setTimeout(resolve, remaining)) : Promise.resolve();
+}
+
 export default function HomePage() {
+  const { user } = useAuth();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [refusal, setRefusal] = useState<string | null>(null);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+  const [imagePreviews, setImagePreviews] = useState<SavedImagePreview[]>([]);
+  const [conversation, setConversation] = useState<ConversationTurn[]>([]);
+
+  const focusQuery = () => {
+    document.getElementById("satquery-prompt")?.focus();
+  };
 
   const handleSelectSuggestion = (query: string) => {
     setPrompt(query);
   };
 
   const handleSubmitForm = async (form: AnalyzeFormValues) => {
+    const turnId = crypto.randomUUID();
+    const loaderStartedAt = Date.now();
     setIsSubmitting(true);
-    setResult(null);
     setRefusal(null);
+    const generatedPreviews = (await Promise.all(
+      form.images.map(async (slot) => ({
+        filename: slot.file.name,
+        data: await createImagePreviewData(slot.file),
+      }))
+    )).filter((image): image is { filename: string; data: { preview: string; bounds: [number, number, number, number] | null } } => Boolean(image.data.preview))
+      .map((image): SavedImagePreview => ({
+        filename: image.filename,
+        data_url: image.data.preview,
+        bounds: image.data.bounds,
+      }));
+    setImagePreviews(generatedPreviews);
+
+    if (user) {
+      const chatSave = await saveChatMessage({
+        userId: user.id,
+        turnId,
+        role: "user",
+        content: form.query,
+      });
+      if (chatSave.error) {
+        console.error("Could not save user chat message:", chatSave.error.message);
+        toast.error("Prompt was not saved", chatSave.error.message);
+      }
+    }
 
     const res = await postAnalyze(form);
+    await waitForRemainingLoaderTime(loaderStartedAt);
     setIsSubmitting(false);
 
     if (res.ok) {
       setResult(res.data);
+      setConversation((current) => [...current, { query: form.query, response: res.data, imagePreviews: generatedPreviews }]);
+      if (user) {
+        const analysisSave = await saveAnalysis(user.id, form.query, res.data);
+        if (analysisSave.error) {
+          console.error("Could not save analysis history:", analysisSave.error.message);
+          toast.error("Analysis history was not saved", analysisSave.error.message);
+        }
+
+        const assistantSave = await saveChatMessage({
+          userId: user.id,
+          turnId,
+          role: "assistant",
+          content: res.data.answer,
+          response: {
+            ...res.data,
+            image_previews: generatedPreviews,
+          },
+        });
+        if (assistantSave.error) {
+          console.error("Could not save assistant chat message:", assistantSave.error.message);
+          toast.error("Model response was not saved", assistantSave.error.message);
+        }
+        setHistoryRefreshKey((value) => value + 1);
+      }
     } else {
       setRefusal(res.detail);
     }
@@ -39,56 +125,29 @@ export default function HomePage() {
 
   const handleNewAnalysis = () => {
     setPrompt("");
-    setResult(null);
     setRefusal(null);
+    setImagePreviews([]);
+    setConversation([]);
   };
 
   return (
-    <div className="relative min-h-screen w-screen bg-[#FAF6F0] dark:bg-[#0F0E0C] text-primary overflow-x-hidden selection:bg-accent/20 selection:text-primary transition-colors duration-300">
+    <div className="relative min-h-screen w-screen bg-[#FAF6F0] text-primary dark:bg-[#0F0E0C] dark:text-[#F3EEE7] overflow-x-hidden selection:bg-accent/20 selection:text-primary transition-colors duration-300">
+      <SideNavbar refreshKey={historyRefreshKey} onNewChat={handleNewAnalysis} onSearchQuery={focusQuery} onCollapsedChange={setSidebarCollapsed} />
       {/* Background aesthetics */}
       <div className="fixed inset-0 pointer-events-none bg-gradient-to-br from-[#FAF6F0]/85 via-[#F3E5D0]/80 to-[#EADCC9]/85 dark:hidden backdrop-blur-[24px]" />
       <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,_rgba(200,109,59,0.08)_0%,_transparent_75%)] dark:bg-[radial-gradient(ellipse_80%_60%_at_50%_0%,_rgba(200,109,59,0.05)_0%,_transparent_75%)]" />
 
-      {/* Top Navbar */}
-      <header className="relative z-20 px-6 py-4 flex items-center justify-between">
-        {/* Brand */}
-        <Link href="/" onClick={handleNewAnalysis} className="flex items-center gap-2.5 group">
-          <div className="w-8 h-8 rounded-full bg-[#1C1917] dark:bg-[#1F1B17] text-white flex items-center justify-center shadow-xs group-hover:scale-105 transition-all duration-200 ease-apple ring-1 ring-white/10">
-            <Globe className="w-4 h-4" />
-          </div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-serif text-xl tracking-wide text-primary font-medium">
-              SatQuery
-            </span>
-            <em className="font-serif italic text-lg text-accent">AI</em>
-          </div>
-          <span className="ml-1 text-[10px] font-mono font-semibold bg-white/50 dark:bg-[#1F1B17] backdrop-blur-md text-secondary dark:text-[#B8AEA3] px-2.5 py-0.5 rounded-full border border-white/60 dark:border-white/10">
-            SIH 26167
-          </span>
+      {/* Reappearing brand when the navigation is fully closed. */}
+      {sidebarCollapsed && <header className="relative z-20 px-6 py-4 animate-navbar-reveal">
+        <Link href="/" onClick={handleNewAnalysis} className="flex w-fit items-center gap-2.5 group">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1C1917] text-white shadow-xs transition-transform group-hover:scale-105 dark:bg-[#1F1B17]"><Globe className="h-4 w-4" /></div>
+          <span className="font-serif text-xl font-medium tracking-wide text-primary">SatQuery <em className="text-accent">AI</em></span>
         </Link>
-
-        {/* Right controls */}
-        <div className="flex items-center gap-3">
-          <EnvironmentStatusBadge />
-
-          {(result || refusal) && (
-            <button
-              type="button"
-              onClick={handleNewAnalysis}
-              className="apple-interactive glass-pill flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium text-secondary hover:text-primary hover:bg-white/70 dark:hover:bg-white/10 transition-all duration-200"
-            >
-              <Plus className="w-3.5 h-3.5 text-accent" />
-              <span>New Query</span>
-            </button>
-          )}
-
-          <ThemeToggle />
-        </div>
-      </header>
+      </header>}
 
       {/* Main Content */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-6 max-w-4xl mx-auto space-y-6">
-        {!result && !refusal && (
+      <main className={`relative z-10 flex min-h-[calc(100vh-100px)] flex-col px-4 py-6 transition-[margin] duration-300 ease-apple ${sidebarCollapsed ? "lg:ml-0" : "lg:ml-72"} ${conversation.length > 0 ? "h-[calc(100vh-100px)] overflow-hidden" : "items-center justify-center"}`}>
+        {!result && (
           <>
             <FrontierHero onSelectSuggestion={handleSelectSuggestion} />
             <FrontierPromptBox
@@ -102,50 +161,37 @@ export default function HomePage() {
 
         {/* Loading Spinner */}
         {isSubmitting && (
-          <div className="p-8 flex flex-col items-center justify-center space-y-3">
-            <Loader2 className="w-8 h-8 text-accent animate-spin" />
-            <p className="text-sm font-mono text-secondary">
-              Running spatial intelligence pipeline & specialist VLM inference…
-            </p>
+          <div className="w-full rounded-2xl border border-stone-300/70 bg-[#1C1917] px-3 py-2 shadow-[0_16px_40px_-8px_rgba(78,59,42,0.22)] dark:border-white/10">
+            <MultiStepLoader
+              loading={isSubmitting}
+              loadingStates={ANALYSIS_LOADING_STEPS}
+              duration={LOADER_STEP_DURATION_MS}
+              className="py-2"
+              isModal
+            />
           </div>
         )}
 
-        {/* Refusal display */}
-        {refusal && (
-          <div className="w-full space-y-4">
-            <button
-              type="button"
-              onClick={handleNewAnalysis}
-              className="flex items-center gap-1.5 text-xs text-secondary hover:text-primary transition-colors font-mono"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to search</span>
-            </button>
-            <RefusalCard detail={refusal} onReset={handleNewAnalysis} />
+        {conversation.length > 0 && (
+          <div className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col">
+            <div className={`grid min-h-0 flex-1 gap-5 ${imagePreviews.length > 0 ? "lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)]" : "max-w-3xl w-full mx-auto"}`}>
+              {imagePreviews.length > 0 && <ImageWorkspace images={imagePreviews} evidence={conversation[conversation.length - 1]?.response.visual_evidence} />}
+              <section className="flex min-h-0 min-w-0 flex-col rounded-2xl border border-stone-300/70 bg-white/35 p-3 shadow-subtle dark:border-white/10 dark:bg-[#171512]/55">
+                <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain pr-1">
+                  {conversation.map((turn, index) => <article key={`${turn.query}-${index}`} className="space-y-3"><div className="ml-auto max-w-[90%] rounded-2xl rounded-br-md bg-[#1C1917] px-4 py-3 text-sm text-white shadow-subtle">{turn.query}</div><ResultsPanel data={turn.response} imagePreviews={turn.imagePreviews} showImages={false} dense /></article>)}
+                </div>
+                <div className="shrink-0 border-t border-stone-300/50 pt-3 dark:border-white/10"><FrontierPromptBox value={prompt} onChange={setPrompt} onSubmitPrompt={handleSubmitForm} isSubmitting={isSubmitting} compact /></div>
+              </section>
+            </div>
           </div>
         )}
-
-        {/* Result display */}
-        {result && (
-          <div className="w-full space-y-4">
-            <button
-              type="button"
-              onClick={handleNewAnalysis}
-              className="flex items-center gap-1.5 text-xs text-secondary hover:text-primary transition-colors font-mono"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>New Analysis</span>
-            </button>
-            <ResultsPanel data={result} />
-          </div>
-        )}
+        {refusal && <p className="mx-auto mt-4 text-sm text-rose-600">{refusal}</p>}
       </main>
 
-      {/* Footer */}
-      <footer className="relative z-10 px-6 py-4 text-center text-xs text-secondary/70 dark:text-[#91877D] font-mono flex items-center justify-between border-t border-stone-300/40 dark:border-white/10 mt-12">
+      {sidebarCollapsed && <footer className="relative z-10 px-6 py-4 text-center text-xs text-secondary/70 dark:text-[#91877D] font-mono flex items-center justify-between border-t border-stone-300/40 dark:border-white/10 mt-12">
         <span>SatQuery AI • Autonomous Geospatial Vision-Language Architecture</span>
         <span className="text-secondary/50">SIH 26167 Hackathon Build</span>
-      </footer>
+      </footer>}
     </div>
   );
 }

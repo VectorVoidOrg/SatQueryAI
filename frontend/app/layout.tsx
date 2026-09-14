@@ -8,6 +8,8 @@ export const metadata: Metadata = {
 };
 
 import { ToastContainer } from "@/components/ui/ToastContainer";
+import { AuthProvider } from "@/components/auth/AuthProvider";
+import { AuthGate } from "@/components/auth/AuthGate";
 
 export default function RootLayout({
   children,
@@ -20,7 +22,9 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </head>
       <body className="h-full w-full overflow-hidden bg-base dark:bg-[#0F0E0C] text-primary dark:text-[#F3EEE7] antialiased" suppressHydrationWarning>
-        {children}
+        <AuthProvider>
+          <AuthGate>{children}</AuthGate>
+        </AuthProvider>
         <ToastContainer />
       </body>
     </html>
