@@ -154,10 +154,22 @@ def format_messages(row):
     system_prompt = (
         "You are SatQuery AI, an expert remote-sensing assistant. "
         "Examine the visual pixels of the image carefully and answer accurately. "
-        "Do not invent water, buildings, or changes that are not clearly visible."
+        "Do not invent water, buildings, or changes that are not clearly visible. "
+        "Format the answer for scanning: use a short heading, concise bullet points, "
+        "and a Markdown table only when numerical or statistical values need comparison. "
+        "Use prose or bullets for descriptive answers; do not force a table. "
+        "Keep the final answer factual and compact."
     )
 
-    content.append({"type": "text", "text": f"Question: {row['query']}"})
+    conversation_context = row.get("conversation_context") or []
+    if conversation_context:
+        context_lines = ["Recent conversation context:"]
+        for turn in conversation_context[-6:]:
+            context_lines.append(f"User: {turn.get('query', '')}")
+            context_lines.append(f"Assistant: {turn.get('answer', '')}")
+        content.append({"type": "text", "text": "\n".join(context_lines)})
+
+    content.append({"type": "text", "text": f"Current question: {row['query']}"})
 
     return [
         {"role": "system", "content": system_prompt},

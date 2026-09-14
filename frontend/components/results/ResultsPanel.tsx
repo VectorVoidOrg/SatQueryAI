@@ -9,15 +9,17 @@ import { InputsTable } from "./InputsTable";
 import { EvidencePanel } from "./EvidencePanel";
 import { ExecutionTrace } from "./ExecutionTrace";
 import { ReportLinks } from "./ReportLinks";
+import type { PdfConversationTurn } from "@/lib/conversationPdf";
 
 interface ResultsPanelProps {
   data: AnalyzeResponse;
   imagePreviews?: SavedImagePreview[];
   showImages?: boolean;
   dense?: boolean;
+  conversation?: PdfConversationTurn[];
 }
 
-export const ResultsPanel: React.FC<ResultsPanelProps> = ({ data, imagePreviews = [], showImages = true, dense = false }) => {
+export const ResultsPanel: React.FC<ResultsPanelProps> = ({ data, imagePreviews = [], showImages = true, dense = false, conversation }) => {
   return (
     <div className={`${dense ? "space-y-2" : "space-y-4"} w-full max-w-3xl mx-auto animate-fade-in-up`}>
       {showImages && imagePreviews.length > 0 && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{imagePreviews.map((image) => <figure key={image.filename} className="overflow-hidden rounded-xl border border-stone-200 bg-white/60 dark:border-white/10 dark:bg-[#171512]"><img src={image.data_url} alt={image.filename} className="max-h-64 w-full object-contain" /><figcaption className="truncate px-3 py-2 text-xs text-secondary">{image.filename}</figcaption></figure>)}</div>}
@@ -26,6 +28,8 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({ data, imagePreviews 
         answer={data.answer}
         taskIntent={data.task_intent}
         durationSeconds={data.duration_seconds}
+        structuredOutput={data.structured_debug_output}
+        debugFixture={data.debug_fixture}
         compact={dense}
       />
 
@@ -46,7 +50,7 @@ export const ResultsPanel: React.FC<ResultsPanelProps> = ({ data, imagePreviews 
       )}
 
       {/* 5. Report Links */}
-      {data.report && <ReportLinks report={data.report} />}
+      {data.report && <ReportLinks report={data.report} conversation={conversation ?? [{ query: data.query, response: data }]} />}
 
       {/* 6. Execution Trace */}
       {data.auditable_execution_trace && (

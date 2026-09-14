@@ -1,4 +1,5 @@
 # app.py
+import json
 import os, time, tempfile, logging, threading, uuid
 from pathlib import Path
 from contextlib import asynccontextmanager
@@ -92,7 +93,7 @@ class AgenticModelRuntime:
 
         print("[SatQuery AI] Backend Engine Ready!")
 
-    def predict(self, image_specs, task, query):
+    def predict(self, image_specs, task, query, conversation_context=None):
         torch.cuda.empty_cache()
         # [TASK 1 - follow-on, SEE HANDOVER FLAG F3] 384 -> 448 for image pairs.
         # The PIL pre-downscale in load_image() was binding BELOW the processor's
@@ -111,7 +112,12 @@ class AgenticModelRuntime:
             else:
                 selected_adapter = "base_qwen_vlm"
 
-            msgs = format_messages(row={"task": task, "query": query, "images": image_specs})
+            msgs = format_messages(row={
+                "task": task,
+                "query": query,
+                "images": image_specs,
+                "conversation_context": conversation_context or [],
+            })
             prompt = self.processor.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True)
 
             inputs = self.processor(text=[prompt], images=images, return_tensors="pt").to("cuda:0")
@@ -157,6 +163,67 @@ app = FastAPI(title="SatQuery AI Agentic Backend", lifespan=lifespan)
 # Module-level rather than app.state so the report store exists even when a test
 # client drives /analyze without running the lifespan startup.
 REPORTS = report_lib.ReportStore()
+CONVERSATION_UPLOADS = {}
+CONVERSATION_UPLOADS_LOCK = threading.Lock()
+MAX_CONVERSATION_UPLOADS = 100
+DEBUG_FIXTURE_QUERY = "analyze the langtang glacier disaster in nepal."
+
+
+def _debug_fixture_payload(query, files, modality_list, timestamp_list):
+    return {
+        "detection_analysis": {
+            "method": "Multi-spectral optical and SAR satellite differencing (Sentinel-2 & Landsat 9)",
+            "pre_event_baseline": "Stable ice-snout geometry mapped on Langtang Lirung peak; normal thermal signatures.",
+            "anomaly_indicators": [
+                "Sudden disappearance of a ~0.2 sq km ice-mass shelf on optical bands.",
+                "Seismic shock-equivalent signal (magnitude 5.2) generated entirely by mass-movement impact rather than tectonic shifting.",
+                "Post-event RGB composite showing severe radiometric changes and massive high-albedo to low-albedo debris tracks entering the Trishuli River basin.",
+            ],
+        },
+        "current_potential_risks": {
+            "secondary_hazards": [
+                "Formation of unstable debris-blockage barrier lakes that threaten sudden outburst floods (GLOFs) upstream.",
+                "Continued permafrost degradation and slope destabilization along adjacent Himalayan walls triggered by monsoon saturation and ongoing temperature spikes.",
+            ],
+            "infrastructure_vulnerabilities": [
+                "Completely compromised structural integrity for remaining regional hydropower tunnels and diversion channels.",
+                "High risk of recurring mudflows and heavy siltation choking downstream river networks during heavy precipitation events.",
+            ],
+        },
+    }
+
+
+def _debug_fixture_response(query, files, modality_list, timestamp_list):
+    payload = _debug_fixture_payload(query, files, modality_list, timestamp_list)
+    return _with_report({
+        "task_intent": "debug_fixture",
+        "query": query,
+        "answer": json.dumps(payload, indent=2),
+        "structured_debug_output": payload,
+        "debug_fixture": True,
+        "confidence": 0.0,
+        "confidence_source": "not_applicable_debug_fixture",
+        "duration_seconds": 0.0,
+        "inputs": [
+            {"filename": file.filename, "modality": modality, "timestamp": timestamp}
+            for file, modality, timestamp in zip(files, modality_list, timestamp_list)
+        ],
+        "visual_evidence": {
+            "status": "not_applicable",
+            "source": "debug_fixture",
+            "is_model_prediction": False,
+            "georeferenced": False,
+            "reason": "This is an explicit debug fixture; no image inference was performed.",
+        },
+        "auditable_execution_trace": [
+            {
+                "tool": "debug_fixture_router",
+                "status": "simulated_output",
+                "model_bypassed": True,
+                "reason": "DEBUG_FIXTURES is enabled and the exact fixture query matched.",
+            }
+        ],
+    })
 
 def _with_report(payload):
     """Attach a downloadable per-analysis report to a response payload.
@@ -228,14 +295,38 @@ async def analyze(
     modalities: str = Form("optical"),
     timestamps: str = Form(""),
     bands: str = Form("1,2,3"),
-    files: list[UploadFile] = File(...)
+    conversation_context: str = Form(""),
+    conversation_id: str = Form(""),
+    files: list[UploadFile] = File(default=[])
 ):
     try:
+        stored_session = None
+        if not files and conversation_id:
+            with CONVERSATION_UPLOADS_LOCK:
+                stored_session = CONVERSATION_UPLOADS.get(conversation_id)
+            stored_uploads = stored_session.get("files", []) if isinstance(stored_session, dict) else (stored_session or [])
+            files = []
+            for stored in stored_uploads:
+                upload = UploadFile(
+                    filename=stored["filename"],
+                    file=tempfile.SpooledTemporaryFile(),
+                )
+                upload.file.write(stored["content"])
+                await upload.seek(0)
+                files.append(upload)
+
         if len(files) < 1 or len(files) > 2:
-            raise HTTPException(400, "SatQuery AI accepts either 1 image or 2 images.")
+            raise HTTPException(400, "SatQuery AI needs an image for the first message. Attach an image to start this conversation.")
 
         band_indices = [int(x.strip()) for x in bands.split(",")]
         modality_list = [m.strip().lower() for m in modalities.split(",")]
+
+        if stored_session and not modalities:
+            modality_list = list(stored_session.get("modalities", modality_list))
+        if stored_session and not timestamps:
+            timestamps = ",".join(stored_session.get("timestamps", []))
+        if stored_session and bands == "1,2,3":
+            band_indices = list(stored_session.get("bands", band_indices))
 
         # [TASK 2] Positional parse, NO empty-filtering (was `if t.strip()`).
         # Filtering shifted timestamps out of alignment with their file: ",2024-06-15"
@@ -252,6 +343,12 @@ async def analyze(
         # The problem statement's input scope is "optical/multispectral or SAR".
         # Without this, a valid multispectral pair would fall through to a 400.
         modality_list = ["sar" if m == "sar" else "optical" for m in modality_list]
+
+        if (
+            os.environ.get("DEBUG_FIXTURES", "").lower() in {"1", "true", "yes"}
+            and query.strip().lower() == DEBUG_FIXTURE_QUERY
+        ):
+            return _debug_fixture_response(query, files, modality_list, timestamp_list)
 
         start_time = time.time()
         q_lower = query.lower()
@@ -347,15 +444,31 @@ async def analyze(
         visual_evidence = None
         evidence_trace = None
 
+        parsed_context = []
+        if conversation_context:
+            try:
+                candidate_context = json.loads(conversation_context)
+                if isinstance(candidate_context, list):
+                    parsed_context = [
+                        item for item in candidate_context
+                        if isinstance(item, dict)
+                        and isinstance(item.get("query"), str)
+                        and isinstance(item.get("answer"), str)
+                    ][-6:]
+            except (TypeError, ValueError, json.JSONDecodeError):
+                parsed_context = []
+
         with tempfile.TemporaryDirectory() as temp_dir:
             image_specs = []
             image_metadata = []
+            stored_uploads = []
 
             for idx, file in enumerate(files):
                 ext = Path(file.filename or "").suffix.lower()
                 temp_path = Path(temp_dir) / f"input_{idx}{ext}"
                 content = await file.read()
                 temp_path.write_bytes(content)
+                stored_uploads.append({"filename": file.filename, "content": content})
 
                 ts = timestamp_list[idx] if idx < len(timestamp_list) else None
                 ts = ts or None
@@ -367,9 +480,20 @@ async def analyze(
                 meta = {"filename": file.filename, "modality": mod, "timestamp": ts}
                 image_metadata.append(meta)
 
+            if conversation_id and stored_uploads:
+                with CONVERSATION_UPLOADS_LOCK:
+                    CONVERSATION_UPLOADS[conversation_id] = {
+                        "files": stored_uploads,
+                        "modalities": modality_list,
+                        "timestamps": timestamp_list,
+                        "bands": band_indices,
+                    }
+                    while len(CONVERSATION_UPLOADS) > MAX_CONVERSATION_UPLOADS:
+                        CONVERSATION_UPLOADS.pop(next(iter(CONVERSATION_UPLOADS)))
+
             answer, chosen_adapter, confidence = await run_in_threadpool(
                 app.state.runtime.predict,
-                image_specs, task, query
+                image_specs, task, query, parsed_context
             )
 
             # ---- [GAP 1] visual evidence ------------------------------------

@@ -5,6 +5,25 @@
 
 import type { AnalyzeFormValues, AnalyzeResponse, BackendRefusal } from "@/lib/types/analyze";
 
+function readableErrorDetail(value: unknown, fallback: string): string {
+  if (typeof value === "string" && value.trim()) return value;
+  if (Array.isArray(value)) {
+    const messages = value.map((item) => readableErrorDetail(item, "")).filter(Boolean);
+    if (messages.length > 0) return messages.join("; ");
+  }
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    if (typeof record.msg === "string") return record.msg;
+    if ("detail" in record) return readableErrorDetail(record.detail, fallback);
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return fallback;
+    }
+  }
+  return fallback;
+}
+
 export type AnalyzeResult =
   | { ok: true; data: AnalyzeResponse }
   | { ok: false; status: number; detail: string };
@@ -15,6 +34,12 @@ export async function postAnalyze(form: AnalyzeFormValues): Promise<AnalyzeResul
   fd.append("query", form.query);
   fd.append("bands", form.bands ?? "1,2,3");
   fd.append("dataset", form.dataset ?? "operational");
+  if (form.conversationId) {
+    fd.append("conversation_id", form.conversationId);
+  }
+  if (form.conversationContext?.length) {
+    fd.append("conversation_context", JSON.stringify(form.conversationContext));
+  }
 
   const modalities = form.images.map((s) => s.modality).join(",");
   const timestamps = form.images.map((s) => s.timestamp).join(",");
@@ -39,7 +64,7 @@ export async function postAnalyze(form: AnalyzeFormValues): Promise<AnalyzeResul
   let detail = `Server error ${res.status}`;
   try {
     const err: BackendRefusal = await res.json();
-    detail = err.detail ?? detail;
+    detail = readableErrorDetail(err.detail, detail);
   } catch {
     // body unreadable — keep generic message
   }

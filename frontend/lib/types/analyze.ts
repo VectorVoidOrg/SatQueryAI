@@ -73,6 +73,8 @@ export interface AnalyzeResponse {
   visual_evidence: VisualEvidence | null;
   auditable_execution_trace: TraceStep[];
   report: ReportLinks;
+  debug_fixture?: boolean;
+  structured_debug_output?: Record<string, unknown>;
 }
 
 // ---- 400 refusal shape -----------------------------------------------------
@@ -96,4 +98,9 @@ export interface AnalyzeFormValues {
   query: string;
   bands?: string;       // default "1,2,3"
   dataset?: string;     // default "operational"
+  conversationId?: string;
+  conversationContext?: Array<{
+    query: string;
+    answer: string;
+  }>;
 }

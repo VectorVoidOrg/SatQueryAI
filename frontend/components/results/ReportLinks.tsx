@@ -3,12 +3,14 @@
 import React from "react";
 import { FileText, Download, Code } from "lucide-react";
 import type { ReportLinks as ReportLinksType } from "@/lib/types/analyze";
+import { downloadConversationPdf, type PdfConversationTurn } from "@/lib/conversationPdf";
 
 interface ReportLinksProps {
   report: ReportLinksType;
+  conversation?: PdfConversationTurn[];
 }
 
-export const ReportLinks: React.FC<ReportLinksProps> = ({ report }) => {
+export const ReportLinks: React.FC<ReportLinksProps> = ({ report, conversation }) => {
   return (
     <div className="p-4 rounded-xl bg-stone-100/80 dark:bg-[#1C1917] border border-stone-200 dark:border-white/10 flex flex-wrap items-center justify-between gap-3 text-xs">
       <div className="flex items-center gap-2">
@@ -30,13 +32,14 @@ export const ReportLinks: React.FC<ReportLinksProps> = ({ report }) => {
           <span>View Report</span>
         </a>
 
-        <a
-          href={report.download_url}
+        <button
+          type="button"
+          onClick={() => downloadConversationPdf(conversation ?? [])}
           className="apple-interactive px-3 py-1.5 rounded-lg bg-accent text-white hover:bg-accent/90 font-medium flex items-center gap-1.5 shadow-xs transition-colors"
         >
           <Download className="w-3.5 h-3.5" />
-          <span>Download HTML</span>
-        </a>
+          <span>Download PDF</span>
+        </button>
 
         <a
           href={report.json_url}

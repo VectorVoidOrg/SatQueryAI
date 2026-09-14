@@ -48,6 +48,7 @@ export default function HomePage() {
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const [imagePreviews, setImagePreviews] = useState<SavedImagePreview[]>([]);
   const [conversation, setConversation] = useState<ConversationTurn[]>([]);
+  const [conversationId, setConversationId] = useState(() => crypto.randomUUID());
 
   const focusQuery = () => {
     document.getElementById("satquery-prompt")?.focus();
@@ -58,77 +59,83 @@ export default function HomePage() {
   };
 
   const handleSubmitForm = async (form: AnalyzeFormValues) => {
-    const turnId = crypto.randomUUID();
     const loaderStartedAt = Date.now();
     setIsSubmitting(true);
     setRefusal(null);
-    const generatedPreviews = (await Promise.all(
-      form.images.map(async (slot) => ({
-        filename: slot.file.name,
-        data: await createImagePreviewData(slot.file),
-      }))
-    )).filter((image): image is { filename: string; data: { preview: string; bounds: [number, number, number, number] | null } } => Boolean(image.data.preview))
-      .map((image): SavedImagePreview => ({
-        filename: image.filename,
-        data_url: image.data.preview,
-        bounds: image.data.bounds,
-      }));
-    setImagePreviews(generatedPreviews);
+    try {
+      const generatedPreviews = (await Promise.all(
+        form.images.map(async (slot) => ({
+          filename: slot.file.name,
+          data: await createImagePreviewData(slot.file),
+        }))
+      )).filter((image): image is { filename: string; data: { preview: string; bounds: [number, number, number, number] | null } } => Boolean(image.data.preview))
+        .map((image): SavedImagePreview => ({
+          filename: image.filename,
+          data_url: image.data.preview,
+          bounds: image.data.bounds,
+        }));
+      setImagePreviews(generatedPreviews);
 
-    if (user) {
-      const chatSave = await saveChatMessage({
-        userId: user.id,
-        turnId,
-        role: "user",
-        content: form.query,
-      });
-      if (chatSave.error) {
-        console.error("Could not save user chat message:", chatSave.error.message);
-        toast.error("Prompt was not saved", chatSave.error.message);
+      if (user) {
+        const chatSave = await saveChatMessage({
+          userId: user.id,
+          turnId: conversationId,
+          role: "user",
+          content: form.query,
+        });
+        if (chatSave.error) toast.error("Prompt was not saved", chatSave.error.message);
       }
-    }
 
-    const res = await postAnalyze(form);
-    await waitForRemainingLoaderTime(loaderStartedAt);
-    setIsSubmitting(false);
+      const res = await postAnalyze({
+        ...form,
+        conversationId,
+        conversationContext: conversation.slice(-6).map((turn) => ({
+          query: turn.query,
+          answer: turn.response.answer.slice(0, 3000),
+        })),
+      });
 
-    if (res.ok) {
+      if (!res.ok) {
+        setRefusal(res.detail);
+        return;
+      }
+
       setResult(res.data);
       setConversation((current) => [...current, { query: form.query, response: res.data, imagePreviews: generatedPreviews }]);
       if (user) {
         const analysisSave = await saveAnalysis(user.id, form.query, res.data);
-        if (analysisSave.error) {
-          console.error("Could not save analysis history:", analysisSave.error.message);
-          toast.error("Analysis history was not saved", analysisSave.error.message);
-        }
+        if (analysisSave.error) toast.error("Analysis history was not saved", analysisSave.error.message);
 
         const assistantSave = await saveChatMessage({
           userId: user.id,
-          turnId,
+          turnId: conversationId,
           role: "assistant",
           content: res.data.answer,
-          response: {
-            ...res.data,
-            image_previews: generatedPreviews,
-          },
+          response: { ...res.data, image_previews: generatedPreviews },
         });
-        if (assistantSave.error) {
-          console.error("Could not save assistant chat message:", assistantSave.error.message);
-          toast.error("Model response was not saved", assistantSave.error.message);
-        }
+        if (assistantSave.error) toast.error("Model response was not saved", assistantSave.error.message);
         setHistoryRefreshKey((value) => value + 1);
       }
-    } else {
-      setRefusal(res.detail);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "The analysis could not be completed.";
+      setRefusal(message);
+      toast.error("Analysis failed", message);
+    } finally {
+      await waitForRemainingLoaderTime(loaderStartedAt);
+      setIsSubmitting(false);
     }
   };
 
   const handleNewAnalysis = () => {
     setPrompt("");
     setRefusal(null);
+    setResult(null);
     setImagePreviews([]);
     setConversation([]);
+    setConversationId(crypto.randomUUID());
   };
+
+  const workspaceTurn = [...conversation].reverse().find((turn) => turn.imagePreviews.length > 0);
 
   return (
     <div className="relative min-h-screen w-screen bg-[#FAF6F0] text-primary dark:bg-[#0F0E0C] dark:text-[#F3EEE7] overflow-x-hidden selection:bg-accent/20 selection:text-primary transition-colors duration-300">
@@ -160,7 +167,7 @@ export default function HomePage() {
         )}
 
         {/* Loading Spinner */}
-        {isSubmitting && (
+        {isSubmitting && conversation.length === 0 && (
           <div className="w-full rounded-2xl border border-stone-300/70 bg-[#1C1917] px-3 py-2 shadow-[0_16px_40px_-8px_rgba(78,59,42,0.22)] dark:border-white/10">
             <MultiStepLoader
               loading={isSubmitting}
@@ -175,10 +182,10 @@ export default function HomePage() {
         {conversation.length > 0 && (
           <div className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col">
             <div className={`grid min-h-0 flex-1 gap-5 ${imagePreviews.length > 0 ? "lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)]" : "max-w-3xl w-full mx-auto"}`}>
-              {imagePreviews.length > 0 && <ImageWorkspace images={imagePreviews} evidence={conversation[conversation.length - 1]?.response.visual_evidence} />}
+              {workspaceTurn && <ImageWorkspace images={workspaceTurn.imagePreviews} evidence={workspaceTurn.response.visual_evidence} />}
               <section className="flex min-h-0 min-w-0 flex-col rounded-2xl border border-stone-300/70 bg-white/35 p-3 shadow-subtle dark:border-white/10 dark:bg-[#171512]/55">
                 <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain pr-1">
-                  {conversation.map((turn, index) => <article key={`${turn.query}-${index}`} className="space-y-3"><div className="ml-auto max-w-[90%] rounded-2xl rounded-br-md bg-[#1C1917] px-4 py-3 text-sm text-white shadow-subtle">{turn.query}</div><ResultsPanel data={turn.response} imagePreviews={turn.imagePreviews} showImages={false} dense /></article>)}
+                  {conversation.map((turn, index) => <article key={`${turn.query}-${index}`} className="space-y-3"><div className="ml-auto max-w-[90%] rounded-2xl rounded-br-md bg-[#1C1917] px-4 py-3 text-sm text-white shadow-subtle">{turn.query}</div><ResultsPanel data={turn.response} imagePreviews={turn.imagePreviews} showImages={false} dense conversation={conversation.map((item) => ({ query: item.query, response: item.response }))} /></article>)}
                 </div>
                 <div className="shrink-0 border-t border-stone-300/50 pt-3 dark:border-white/10"><FrontierPromptBox value={prompt} onChange={setPrompt} onSubmitPrompt={handleSubmitForm} isSubmitting={isSubmitting} compact /></div>
               </section>

@@ -34,8 +34,21 @@ export type SavedAnalyzeResponse = AnalyzeResponse & {
 export interface ChatConversation {
   turnId: string;
   createdAt: string;
+  messages: ChatHistoryItem[];
   prompt: ChatHistoryItem | null;
   response: ChatHistoryItem | null;
+}
+
+export async function getConversation(userId: string, turnId: string) {
+  if (!supabase) return { data: [] as ChatHistoryItem[], error: null };
+  const result = await supabase
+    .from("chat_history")
+    .select("id, turn_id, user_id, role, content, response, created_at")
+    .eq("user_id", userId)
+    .eq("turn_id", turnId)
+    .order("created_at", { ascending: true });
+
+  return { data: (result.data ?? []) as ChatHistoryItem[], error: result.error };
 }
 
 export async function saveChatMessage({
@@ -78,15 +91,23 @@ export async function getRecentConversations(userId: string) {
     const existing = conversations.get(row.turn_id) ?? {
       turnId: row.turn_id,
       createdAt: row.created_at,
+      messages: [],
       prompt: null,
       response: null,
     };
-    if (row.role === "user") existing.prompt = row;
-    if (row.role === "assistant") existing.response = row;
+    existing.messages.push(row);
     if (new Date(row.created_at) < new Date(existing.createdAt)) {
       existing.createdAt = row.created_at;
     }
     conversations.set(row.turn_id, existing);
+  }
+
+  for (const conversation of conversations.values()) {
+    conversation.messages.sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    );
+    conversation.prompt = conversation.messages.find((message) => message.role === "user") ?? null;
+    conversation.response = [...conversation.messages].reverse().find((message) => message.role === "assistant") ?? null;
   }
 
   return {
@@ -107,12 +128,15 @@ export async function deleteConversation(userId: string, conversation: ChatConve
     .eq("turn_id", conversation.turnId);
   if (chatResult.error) return { error: chatResult.error };
 
-  if (conversation.prompt?.content) {
+  const queries = conversation.messages
+    .filter((message) => message.role === "user")
+    .map((message) => message.content);
+  for (const query of new Set(queries)) {
     const analysisResult = await supabase
       .from("analysis_history")
       .delete()
       .eq("user_id", userId)
-      .eq("query", conversation.prompt.content);
+      .eq("query", query);
     if (analysisResult.error) return { error: analysisResult.error };
   }
 
