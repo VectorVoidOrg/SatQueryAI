@@ -1,16 +1,14 @@
+// frontend/app/api/health/route.ts
 import { NextResponse } from "next/server";
 
+const BACKEND_URL = process.env.BACKEND_URL ?? "http://127.0.0.1:8000";
+
 export async function GET() {
-  return NextResponse.json({
-    status: "healthy",
-    service: "SatQuery AI Frontend Canvas",
-    version: "1.0.0",
-    sih_problem_id: "SIH 26167",
-    timestamp: new Date().toISOString(),
-    telemetry: {
-      geospatial_projection: "EPSG:4326",
-      default_aoi: "Sundarbans_2026Q1",
-      supported_formats: [".tif", ".tiff", "COG"],
-    },
-  });
+  try {
+    const res = await fetch(`${BACKEND_URL}/health`, { cache: "no-store" });
+    const json = await res.json();
+    return NextResponse.json(json, { status: res.status });
+  } catch {
+    return NextResponse.json({ status: "unreachable" }, { status: 502 });
+  }
 }
