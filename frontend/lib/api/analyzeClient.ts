@@ -45,6 +45,7 @@ export async function postAnalyze(form: AnalyzeFormValues): Promise<AnalyzeResul
   const timestamps = form.images.map((s) => s.timestamp).join(",");
   fd.append("modalities", modalities);
   fd.append("timestamps", timestamps);
+  fd.append("highlights", JSON.stringify(form.highlightOverrides ?? form.images.map((slot) => slot.highlight ?? null)));
 
   for (const slot of form.images) {
     fd.append("files", slot.file);

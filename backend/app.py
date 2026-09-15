@@ -1,6 +1,6 @@
 # app.py
 import json
-import os, time, tempfile, logging, threading, uuid
+import os, re, time, tempfile, logging, threading, uuid
 from pathlib import Path
 from contextlib import asynccontextmanager
 import torch
@@ -14,6 +14,99 @@ from common import BASE_MODEL, load_image, format_messages
 import evidence
 import report as report_lib
 from ui import INDEX_HTML
+
+try:
+    from google import genai
+    from google.genai import types as genai_types
+except ImportError:  # Optional so the core model still works without Gemini.
+    genai = None
+    genai_types = None
+
+
+GEMINI_FORMATTER_MODEL = "gemini-2.0-flash"
+GEMINI_FORMATTER_SYSTEM_PROMPT = """You are a strict output formatter and intent checker for a remote-sensing assistant.
+
+First infer the requested answer shape from the user query, then rewrite the raw
+output into a professional, concise, human-readable answer that satisfies that
+shape. For yes/no questions, lead with a clear yes or no and a brief reason. For
+counts or measurements, state the value and units. For comparisons, separate the
+items and state the difference. For identification or description, use concise
+prose or bullets. Preserve facts from the raw output, but remove broken tokens,
+raw IDs, repetition, and obvious gibberish. Use short headings and bullet points
+when they improve readability. Use a Markdown table only when the query asks for
+or the raw output contains genuinely numerical or statistical comparisons.
+Do not invent facts, locations, measurements, dates, or confidence. If the raw
+output is unusable, give a brief honest answer based only on what can be read.
+For table or comparison requests, every numeric value, percentage, date, count,
+measurement, and named category must be copied from the raw output. If a field
+is missing, write "Not available from the supplied analysis"; never estimate or
+fill it from general knowledge. When a table is requested, return exactly one
+Markdown header row, one separator row, and one data row per supported item.
+Every data row must have exactly the same number of columns as the header, with
+missing cells written as "Not available from the supplied analysis". Never merge
+columns, invent rows, or move a value into a different column.
+Never mention this formatter, Gemini, cleanup, model errors, or that a fix occurred.
+Return only the final answer text, with no preamble and no JSON wrapper."""
+
+TABLE_QUERY_TERMS = (
+    "table", "tabular", "compare", "comparison", "statistics", "statistical",
+    "count", "number of", "percentage", "percent", "metrics", "measurements",
+)
+
+
+def _numeric_tokens(value):
+    return re.findall(
+        r"(?<![A-Za-z])(?:[-+]?\d+(?:[,.]\d+)*%?|\d{4}-\d{2}-\d{2})(?![A-Za-z])",
+        str(value),
+    )
+
+
+def _is_table_query(query):
+    lowered = str(query).lower()
+    return any(term in lowered for term in TABLE_QUERY_TERMS)
+
+
+def _formatter_introduced_numbers(raw_output, formatted_output):
+    raw_numbers = set(_numeric_tokens(raw_output))
+    formatted_numbers = set(_numeric_tokens(formatted_output))
+    return formatted_numbers - raw_numbers
+
+
+def format_output_with_gemini(user_query, raw_output):
+    """Format one orchestrator answer while preserving the existing API contract.
+
+    This is deliberately fail-open: missing configuration, an unavailable SDK,
+    or a formatter failure returns the original orchestrator output unchanged.
+    """
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key or genai is None or genai_types is None or not raw_output:
+        return raw_output
+
+    try:
+        client = genai.Client(api_key=api_key)
+        response = client.models.generate_content(
+            model=GEMINI_FORMATTER_MODEL,
+            contents=(
+                f"User query:\n{user_query}\n\n"
+                f"Raw orchestrator output:\n{str(raw_output)[:12000]}"
+            ),
+            config=genai_types.GenerateContentConfig(
+                system_instruction=GEMINI_FORMATTER_SYSTEM_PROMPT,
+                temperature=0.1,
+                max_output_tokens=512,
+            ),
+        )
+        formatted = response.text
+        formatted = formatted.strip() if formatted and formatted.strip() else ""
+        if not formatted:
+            return raw_output
+        if _is_table_query(user_query) and _formatter_introduced_numbers(raw_output, formatted):
+            logging.warning("Rejected Gemini table formatting because it introduced unsupported numeric values")
+            return raw_output
+        return formatted
+    except Exception:
+        logging.exception("Gemini output formatting failed; returning raw output")
+        return raw_output
 
 
 # ---------------------------------------------------------------------------
@@ -154,6 +247,10 @@ class AgenticModelRuntime:
 async def lifespan(app: FastAPI):
     adapter_a = os.environ.get("ADAPTER_A_PATH", "./artifacts/adapter_a")
     adapter_b = os.environ.get("ADAPTER_B_PATH", "./artifacts/adapter_b")
+    if not os.environ.get("GEMINI_API_KEY"):
+        logging.warning("GEMINI_API_KEY is not configured; answers will bypass the output formatter.")
+    elif genai is None:
+        logging.warning("GEMINI_API_KEY is set but google-genai is unavailable; answers will bypass the output formatter.")
     app.state.runtime = AgenticModelRuntime(adapter_a, adapter_b)
     app.state.reports = REPORTS
     yield
@@ -167,27 +264,56 @@ CONVERSATION_UPLOADS = {}
 CONVERSATION_UPLOADS_LOCK = threading.Lock()
 MAX_CONVERSATION_UPLOADS = 100
 DEBUG_FIXTURE_QUERY = "analyze the langtang glacier disaster in nepal."
+ROOPSAGAR_FIXTURE_QUERY = "assess the flood changes and potential damage to nearby household of roopsagar"
 
 
 def _debug_fixture_payload(query, files, modality_list, timestamp_list):
+    if query.strip().lower() == ROOPSAGAR_FIXTURE_QUERY:
+        return {
+            "query": query,
+            "response": {
+                "paragraph": "Based on the bi-temporal analysis of pre- and post-monsoon imagery for the Roopsagar lake area, the orchestrator has detected significant flood boundary changes and subsequent property damage. Fusing temporal SAR data to map the expanded water extent with Optical imagery to identify built-up structures, the system reveals that the water line has expanded by 18% beyond its historical safe limit. Because spatial flood-risk analysis from Water Management was not integrated with the Urban Improvement Trust (UIT) housing development plans, this sudden change in the flood boundary has directly inundated nearby low-lying households along the eastern bank, resulting in critical structural risks and waterlogging.",
+                "table": {
+                    "headers": ["Zone / Location", "Flood Boundary Change", "Damage Assessment & Household Impact", "Orchestrator Tools Utilized"],
+                    "rows": [
+                        ["Roopsagar East Bank (UIT Sector)", "+18% Water Extent Expansion", "Critical Inundation - 32 Households Submerged", "Bi-Temporal SAR (Change Detection) + Optical"],
+                        ["Roopsagar South Buffer", "High Soil Saturation / Waterlogging", "Moderate Damage - 14 Households at Risk", "SAR (Moisture Index Extraction)"],
+                        ["UIT Extension Zone 4", "+12% Floodplain Overlap", "High Structural Risk - 45 Households Affected", "Cross-Modal Fusion (Built-up vs Water)"],
+                    ],
+                },
+            },
+        }
     return {
-        "detection_analysis": {
-            "method": "Multi-spectral optical and SAR satellite differencing (Sentinel-2 & Landsat 9)",
-            "pre_event_baseline": "Stable ice-snout geometry mapped on Langtang Lirung peak; normal thermal signatures.",
-            "anomaly_indicators": [
-                "Sudden disappearance of a ~0.2 sq km ice-mass shelf on optical bands.",
-                "Seismic shock-equivalent signal (magnitude 5.2) generated entirely by mass-movement impact rather than tectonic shifting.",
-                "Post-event RGB composite showing severe radiometric changes and massive high-albedo to low-albedo debris tracks entering the Trishuli River basin.",
+        "orchestrator_module": "Crisis_Response_Engine",
+        "event_id": "NEPAL-GLACIER-2026-0826",
+        "timestamp": "2026-08-26T08:37:00Z",
+        "detection_and_telemetry": {
+            "detection_source": "Multi-sensor satellite differencing (Sentinel-2, Planet Labs) & Seismic networks",
+            "trigger_signature": "Magnitude 5.2 equivalent shock-signal generated by mass-movement impact on Langtang Lirung.",
+            "anomaly_noted": "Optical bands detected the sudden disappearance of a ~0.2 sq km ice-mass shelf at ~5,200 meters elevation and severe bedrock debuttressing.",
+        },
+        "disaster_dynamics": {
+            "event_type": "Rock-ice avalanche transitioning into a high-energy debris flow.",
+            "primary_river_affected": "Lhende Khola feeding into the Trishuli River / Bhote Koshi.",
+            "river_blockage_status": "The massive avalanche temporarily formed a debris barrier/dam across the Lhende Khola before breaching, sending a 70-meter high wall of water, mud, and ice rushing down gorges.",
+        },
+        "impact_metrics": {
+            "geographic_reach": "Traveled roughly 100 km downstream across the Nepal-Tibet border.",
+            "infrastructure_failures": [
+                "Gyirong border port / Rasuwagadhi infrastructure severely impacted.",
+                "Hydroelectric power tunnels choked and compromised.",
+                "Critical highways, bridges, and local settlements buried under debris.",
             ],
         },
-        "current_potential_risks": {
-            "secondary_hazards": [
-                "Formation of unstable debris-blockage barrier lakes that threaten sudden outburst floods (GLOFs) upstream.",
-                "Continued permafrost degradation and slope destabilization along adjacent Himalayan walls triggered by monsoon saturation and ongoing temperature spikes.",
+        "disaster_management_directives": {
+            "immediate_actions": [
+                "Deploy UAVs (drones) upstream along the Lhende Khola to check for secondary unstable barrier lakes or pooling water.",
+                "Issue high-alert evacuation warnings for downstream river settlements along the Trishuli corridor.",
+                "Establish emergency relief camps outside the immediate flood plain for displaced populations.",
             ],
-            "infrastructure_vulnerabilities": [
-                "Completely compromised structural integrity for remaining regional hydropower tunnels and diversion channels.",
-                "High risk of recurring mudflows and heavy siltation choking downstream river networks during heavy precipitation events.",
+            "rescue_priorities": [
+                "Clear blocked mountain roads to allow heavy extraction and medical equipment into isolated pockets of Rasuwa.",
+                "Monitor automated water-level sensors downstream for secondary Glacial Lake Outburst Flood (GLOF) spikes.",
             ],
         },
     }
@@ -195,11 +321,12 @@ def _debug_fixture_payload(query, files, modality_list, timestamp_list):
 
 def _debug_fixture_response(query, files, modality_list, timestamp_list):
     payload = _debug_fixture_payload(query, files, modality_list, timestamp_list)
+    structured_output = payload.get("response", payload)
     return _with_report({
         "task_intent": "debug_fixture",
         "query": query,
         "answer": json.dumps(payload, indent=2),
-        "structured_debug_output": payload,
+        "structured_debug_output": structured_output,
         "debug_fixture": True,
         "confidence": 0.0,
         "confidence_source": "not_applicable_debug_fixture",
@@ -297,11 +424,14 @@ async def analyze(
     bands: str = Form("1,2,3"),
     conversation_context: str = Form(""),
     conversation_id: str = Form(""),
+    highlights: str = Form(""),
     files: list[UploadFile] = File(default=[])
 ):
     try:
         stored_session = None
+        reused_session = False
         if not files and conversation_id:
+            reused_session = True
             with CONVERSATION_UPLOADS_LOCK:
                 stored_session = CONVERSATION_UPLOADS.get(conversation_id)
             stored_uploads = stored_session.get("files", []) if isinstance(stored_session, dict) else (stored_session or [])
@@ -315,18 +445,27 @@ async def analyze(
                 await upload.seek(0)
                 files.append(upload)
 
-        if len(files) < 1 or len(files) > 2:
-            raise HTTPException(400, "SatQuery AI needs an image for the first message. Attach an image to start this conversation.")
+        if len(files) < 1 or len(files) > 5:
+            raise HTTPException(400, "SatQuery AI accepts between 1 and 5 images.")
 
         band_indices = [int(x.strip()) for x in bands.split(",")]
         modality_list = [m.strip().lower() for m in modalities.split(",")]
 
-        if stored_session and not modalities:
+        try:
+            highlight_list = json.loads(highlights) if highlights else []
+        except (TypeError, ValueError, json.JSONDecodeError):
+            highlight_list = []
+        if not isinstance(highlight_list, list):
+            highlight_list = []
+
+        if reused_session and stored_session:
             modality_list = list(stored_session.get("modalities", modality_list))
-        if stored_session and not timestamps:
+        if reused_session and stored_session:
             timestamps = ",".join(stored_session.get("timestamps", []))
-        if stored_session and bands == "1,2,3":
+        if reused_session and stored_session:
             band_indices = list(stored_session.get("bands", band_indices))
+            if not highlights:
+                highlight_list = list(stored_session.get("highlights", highlight_list))
 
         # [TASK 2] Positional parse, NO empty-filtering (was `if t.strip()`).
         # Filtering shifted timestamps out of alignment with their file: ",2024-06-15"
@@ -346,7 +485,7 @@ async def analyze(
 
         if (
             os.environ.get("DEBUG_FIXTURES", "").lower() in {"1", "true", "yes"}
-            and query.strip().lower() == DEBUG_FIXTURE_QUERY
+            and query.strip().lower() in {DEBUG_FIXTURE_QUERY, ROOPSAGAR_FIXTURE_QUERY}
         ):
             return _debug_fixture_response(query, files, modality_list, timestamp_list)
 
@@ -355,7 +494,8 @@ async def analyze(
         intent_basis = None
 
         # Guardrails & Routing
-        if len(files) == 2:
+        comparison_requested = any(term in q_lower for term in ["compare", "comparison", "difference", "changed", "change between"])
+        if len(files) >= 2 and (len(files) == 2 or comparison_requested):
             n_optical = sum(1 for m in modality_list if m == "optical")
             n_sar = sum(1 for m in modality_list if m == "sar")
 
@@ -379,7 +519,10 @@ async def analyze(
                     f"Cross-modal fusion requires exactly one optical and one SAR image "
                     f"(received {n_optical} optical, {n_sar} sar)."
                 )
-            else:
+            elif comparison_requested:
+                task = "change_vqa"
+                intent_basis = f"{len(files)} optical images -> comparison wording detected"
+            elif len(files) == 2:
                 # [TASK 2] change_vqa now REQUIRES two present, DIFFERENT timestamps.
                 # No silent defaulting to change_vqa for an arbitrary 2-image upload.
                 t1, t2 = timestamp_list[0], timestamp_list[1]
@@ -473,8 +616,9 @@ async def analyze(
                 ts = timestamp_list[idx] if idx < len(timestamp_list) else None
                 ts = ts or None
                 mod = modality_list[idx]
+                highlight = highlight_list[idx] if idx < len(highlight_list) else None
 
-                spec = {"path": str(temp_path), "modality": mod, "bands": band_indices, "timestamp": ts}
+                spec = {"path": str(temp_path), "modality": mod, "bands": band_indices, "timestamp": ts, "highlight": highlight}
                 image_specs.append(spec)
 
                 meta = {"filename": file.filename, "modality": mod, "timestamp": ts}
@@ -487,6 +631,7 @@ async def analyze(
                         "modalities": modality_list,
                         "timestamps": timestamp_list,
                         "bands": band_indices,
+                        "highlights": highlight_list,
                     }
                     while len(CONVERSATION_UPLOADS) > MAX_CONVERSATION_UPLOADS:
                         CONVERSATION_UPLOADS.pop(next(iter(CONVERSATION_UPLOADS)))
@@ -495,6 +640,15 @@ async def analyze(
                 app.state.runtime.predict,
                 image_specs, task, query, parsed_context
             )
+
+            # Keep the orchestrator, confidence, evidence, and response schema
+            # unchanged; only the human-facing answer text is formatted.
+            if task != "debug_fixture":
+                answer = await run_in_threadpool(
+                    format_output_with_gemini,
+                    query,
+                    answer,
+                )
 
             # ---- [GAP 1] visual evidence ------------------------------------
             # Computed INSIDE the TemporaryDirectory block on purpose: the frames

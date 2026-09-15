@@ -24,6 +24,7 @@ export interface SavedImagePreview {
   filename: string;
   data_url: string;
   bounds?: [number, number, number, number] | null;
+  highlight?: [number, number, number, number];
 }
 
 export type SavedAnalyzeResponse = AnalyzeResponse & {

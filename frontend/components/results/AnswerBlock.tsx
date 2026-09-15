@@ -32,7 +32,7 @@ function renderFormattedAnswer(answer: string) {
       }
       const rows = tableLines
         .filter((tableLine) => !/^\|?\s*:?-{3,}/.test(tableLine))
-        .map((tableLine) => tableLine.replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim()));
+        .map((tableLine) => tableLine.replace(/^\||\|$/g, "").split(/\s*\|\s*/).map((cell) => cell.trim() || "Not available from the supplied analysis"));
       const [header, ...body] = rows;
       const hasNumericValue = rows.some((row) => row.some((cell) => /(?:^|\s)(?:[-+]?\d+(?:\.\d+)?%?|\d{1,3}(?:,\d{3})+)(?:\s|$)/.test(cell)));
       const hasStatisticalField = header?.some((cell) => /count|number|area|fraction|percentage|percent|share|score|confidence|value|total|mean|median|date/i.test(cell)) ?? false;
@@ -40,6 +40,8 @@ function renderFormattedAnswer(answer: string) {
         blocks.push(<p key={`table-text-${index}`} className="text-primary leading-relaxed">{rows.map((row) => row.join(" - ")).join(". ")}</p>);
         continue;
       }
+      const columnCount = header?.length ?? 0;
+      const normalizedBody = body.map((row) => Array.from({ length: columnCount }, (_, cellIndex) => row[cellIndex] ?? "Not available from the supplied analysis"));
       blocks.push(
         <div key={`table-${index}`} className="overflow-x-auto rounded-lg border border-stone-200 dark:border-white/10">
           <table className="w-full min-w-[28rem] text-left text-xs">
@@ -48,7 +50,7 @@ function renderFormattedAnswer(answer: string) {
               <tr>{header?.map((cell, cellIndex) => <th key={cellIndex} className="px-3 py-2 font-semibold">{cell}</th>)}</tr>
             </thead>
             <tbody className="divide-y divide-stone-200/70 dark:divide-white/10">
-              {body.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex} className="px-3 py-2 text-primary align-top">{cell}</td>)}</tr>)}
+              {normalizedBody.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex} className="px-3 py-2 text-primary align-top">{cell}</td>)}</tr>)}
             </tbody>
           </table>
         </div>,
@@ -94,6 +96,48 @@ function renderFormattedAnswer(answer: string) {
   return blocks.length > 0 ? blocks : <p className="text-primary">No answer was returned.</p>;
 }
 
+function renderStructuredTable(value: Record<string, unknown>) {
+  const paragraph = typeof value.paragraph === "string" ? value.paragraph : null;
+  const rawTable = value.table;
+  const table = rawTable && typeof rawTable === "object" ? rawTable as { headers?: unknown; rows?: unknown } : null;
+  const headers = Array.isArray(table?.headers) ? table.headers.map(String) : [];
+  const rows = Array.isArray(table?.rows) ? table.rows.filter(Array.isArray) as unknown[][] : [];
+  const normalizedRows = rows.map((row) => Array.from({ length: headers.length }, (_, index) => {
+    const cell = row[index];
+    return cell === null || cell === undefined || String(cell).trim() === "" ? "Not available from the supplied analysis" : String(cell);
+  }));
+  const remainingEntries = Object.entries(value).filter(([key]) => key !== "paragraph" && key !== "table");
+
+  return (
+    <div className="space-y-2">
+      {paragraph && <p className="text-xs leading-relaxed text-secondary">{paragraph}</p>}
+      {headers.length > 0 && <div className="overflow-x-auto rounded-lg border border-stone-200 dark:border-white/10">
+        <table className="w-full min-w-[34rem] text-left text-xs">
+          <thead className="bg-stone-100/80 font-mono text-secondary dark:bg-[#1F1B17]"><tr>{headers.map((header) => <th key={header} className="px-3 py-2 font-semibold">{header}</th>)}</tr></thead>
+          <tbody className="divide-y divide-stone-200/70 dark:divide-white/10">{normalizedRows.map((row, rowIndex) => <tr key={rowIndex}>{row.map((cell, cellIndex) => <td key={cellIndex} className="px-3 py-2 align-top text-primary">{cell}</td>)}</tr>)}</tbody>
+        </table>
+      </div>}
+      {remainingEntries.length > 0 && <div className="overflow-x-auto rounded-lg border border-stone-200 dark:border-white/10">
+        <table className="w-full min-w-[30rem] text-left text-xs">
+          <thead className="bg-stone-100/80 font-mono text-secondary dark:bg-[#1F1B17]">
+            <tr><th className="px-3 py-2 font-semibold">Field</th><th className="px-3 py-2 font-semibold">Details</th></tr>
+          </thead>
+          <tbody className="divide-y divide-stone-200/70 dark:divide-white/10">
+            {remainingEntries.map(([key, entry]) => (
+              <tr key={key}>
+                <th className="whitespace-nowrap px-3 py-2 align-top font-mono font-semibold text-secondary">{key.replaceAll("_", " ")}</th>
+                <td className="px-3 py-2 align-top text-primary">
+                  {Array.isArray(entry) ? <ul className="list-disc space-y-1 pl-4">{entry.map((item, index) => <li key={index}>{typeof item === "object" ? JSON.stringify(item) : String(item)}</li>)}</ul> : typeof entry === "object" && entry !== null ? <pre className="whitespace-pre-wrap font-mono text-[11px]">{JSON.stringify(entry, null, 2)}</pre> : String(entry ?? "-")}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>}
+    </div>
+  );
+}
+
 export const AnswerBlock: React.FC<AnswerBlockProps> = ({
   answer,
   taskIntent,
@@ -102,6 +146,17 @@ export const AnswerBlock: React.FC<AnswerBlockProps> = ({
   debugFixture = false,
   compact = false,
 }) => {
+  let parsedAnswer: Record<string, unknown> | null = null;
+  if (!structuredOutput) {
+    try {
+      const parsed = JSON.parse(answer);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) parsedAnswer = parsed as Record<string, unknown>;
+    } catch {
+      parsedAnswer = null;
+    }
+  }
+  const tableOutput = structuredOutput ?? parsedAnswer;
+
   return (
     <div className={`${compact ? "p-3 space-y-2" : "p-5 space-y-3"} rounded-2xl bg-white/70 dark:bg-[#171512] border border-stone-300/80 dark:border-white/10 shadow-sm`}>
       <div className="flex items-center justify-between">
@@ -126,11 +181,7 @@ export const AnswerBlock: React.FC<AnswerBlockProps> = ({
         </div>
       )}
       <div className={`${compact ? "text-sm" : "text-base sm:text-lg"} space-y-3 pl-1`}>
-        {structuredOutput ? (
-          <pre className="overflow-x-auto rounded-lg border border-stone-200 bg-stone-50 p-3 text-xs leading-relaxed text-primary dark:border-white/10 dark:bg-black/20">
-            {JSON.stringify(structuredOutput, null, 2)}
-          </pre>
-        ) : renderFormattedAnswer(answer)}
+        {tableOutput ? renderStructuredTable(tableOutput) : renderFormattedAnswer(answer)}
       </div>
     </div>
   );

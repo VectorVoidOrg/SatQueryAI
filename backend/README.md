@@ -98,6 +98,13 @@ first start; the adapters are loaded from `artifacts/`.
 
 ## 3. Run
 
+### Optional structured-output formatter
+
+The backend can pass the orchestrator's answer through Gemini after inference. Set
+`GEMINI_API_KEY` in the backend runtime environment and install the requirements.
+The formatter is fail-open: if the key or SDK is unavailable, the raw model answer
+is returned. The frontend does not need any changes.
+
 ```bash
 ./run.sh
 # or: uvicorn app:app --host 0.0.0.0 --port 8000

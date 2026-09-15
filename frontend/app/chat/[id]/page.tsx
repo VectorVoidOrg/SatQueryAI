@@ -54,6 +54,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [refusal, setRefusal] = useState<string | null>(null);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+  const [highlightOverrides, setHighlightOverrides] = useState<Array<[number, number, number, number] | null>>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -88,6 +89,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       filename: image.filename,
       data_url: image.data.preview,
       bounds: image.data.bounds,
+      highlight: form.images.find((slot) => slot.file.name === image.filename)?.highlight,
     }));
 
     const chatSave = await saveChatMessage({
@@ -104,6 +106,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
       const res = await postAnalyze({
         ...form,
         conversationId: id,
+        highlightOverrides: highlightOverrides.length > 0 ? highlightOverrides : undefined,
         conversationContext: conversation.slice(-6).map((turn) => ({
           query: turn.query,
           answer: turn.response.answer.slice(0, 3000),
@@ -137,6 +140,13 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
   };
 
   const workspaceTurn = [...conversation].reverse().find((turn) => turn.imagePreviews.length > 0);
+  const updateWorkspaceHighlight = (index: number, highlight: [number, number, number, number] | undefined) => {
+    setHighlightOverrides((current) => {
+      const next = [...current];
+      next[index] = highlight ?? null;
+      return next;
+    });
+  };
 
   return (
     <div className="relative min-h-screen w-screen overflow-x-hidden bg-[#FAF6F0] text-primary transition-colors duration-300 dark:bg-[#0F0E0C] dark:text-[#F3EEE7]">
@@ -171,7 +181,7 @@ export default function ChatPage({ params }: { params: Promise<{ id: string }> }
             <div className="flex flex-1 items-center justify-center"><Loader2 className="h-7 w-7 animate-spin text-accent" /></div>
           ) : (
             <div className={`grid min-h-0 flex-1 gap-5 ${workspaceTurn ? "lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)]" : "mx-auto w-full max-w-3xl"}`}>
-              {workspaceTurn && <ImageWorkspace images={workspaceTurn.imagePreviews} evidence={workspaceTurn.response.visual_evidence} />}
+              {workspaceTurn && <ImageWorkspace images={workspaceTurn.imagePreviews} evidence={workspaceTurn.response.visual_evidence} onHighlightChange={updateWorkspaceHighlight} />}
               <section className="flex min-h-0 min-w-0 flex-col rounded-2xl border border-stone-300/70 bg-white/35 p-3 shadow-subtle dark:border-white/10 dark:bg-[#171512]/55">
                 <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain pr-1">
                   {conversation.map((turn, index) => (

@@ -49,6 +49,7 @@ export default function HomePage() {
   const [imagePreviews, setImagePreviews] = useState<SavedImagePreview[]>([]);
   const [conversation, setConversation] = useState<ConversationTurn[]>([]);
   const [conversationId, setConversationId] = useState(() => crypto.randomUUID());
+  const [sessionImages, setSessionImages] = useState<AnalyzeFormValues["images"]>([]);
 
   const focusQuery = () => {
     document.getElementById("satquery-prompt")?.focus();
@@ -73,8 +74,10 @@ export default function HomePage() {
           filename: image.filename,
           data_url: image.data.preview,
           bounds: image.data.bounds,
+          highlight: form.images.find((slot) => slot.file.name === image.filename)?.highlight,
         }));
       setImagePreviews(generatedPreviews);
+      if (form.images.length > 0) setSessionImages(form.images);
 
       if (user) {
         const chatSave = await saveChatMessage({
@@ -86,14 +89,16 @@ export default function HomePage() {
         if (chatSave.error) toast.error("Prompt was not saved", chatSave.error.message);
       }
 
-      const res = await postAnalyze({
+      const requestForm = {
         ...form,
+        images: form.images.length > 0 ? form.images : sessionImages,
         conversationId,
         conversationContext: conversation.slice(-6).map((turn) => ({
           query: turn.query,
           answer: turn.response.answer.slice(0, 3000),
         })),
-      });
+      };
+      const res = await postAnalyze(requestForm);
 
       if (!res.ok) {
         setRefusal(res.detail);
@@ -133,9 +138,13 @@ export default function HomePage() {
     setImagePreviews([]);
     setConversation([]);
     setConversationId(crypto.randomUUID());
+    setSessionImages([]);
   };
 
   const workspaceTurn = [...conversation].reverse().find((turn) => turn.imagePreviews.length > 0);
+  const updateWorkspaceHighlight = (index: number, highlight: [number, number, number, number] | undefined) => {
+    setSessionImages((current) => current.map((image, imageIndex) => imageIndex === index ? { ...image, highlight } : image));
+  };
 
   return (
     <div className="relative min-h-screen w-screen bg-[#FAF6F0] text-primary dark:bg-[#0F0E0C] dark:text-[#F3EEE7] overflow-x-hidden selection:bg-accent/20 selection:text-primary transition-colors duration-300">
@@ -181,8 +190,8 @@ export default function HomePage() {
 
         {conversation.length > 0 && (
           <div className="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col">
-            <div className={`grid min-h-0 flex-1 gap-5 ${imagePreviews.length > 0 ? "lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)]" : "max-w-3xl w-full mx-auto"}`}>
-              {workspaceTurn && <ImageWorkspace images={workspaceTurn.imagePreviews} evidence={workspaceTurn.response.visual_evidence} />}
+            <div className={`grid min-h-0 flex-1 gap-5 ${workspaceTurn ? "lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.9fr)]" : "max-w-3xl w-full mx-auto"}`}>
+              {workspaceTurn && <ImageWorkspace images={workspaceTurn.imagePreviews} evidence={workspaceTurn.response.visual_evidence} onHighlightChange={updateWorkspaceHighlight} />}
               <section className="flex min-h-0 min-w-0 flex-col rounded-2xl border border-stone-300/70 bg-white/35 p-3 shadow-subtle dark:border-white/10 dark:bg-[#171512]/55">
                 <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain pr-1">
                   {conversation.map((turn, index) => <article key={`${turn.query}-${index}`} className="space-y-3"><div className="ml-auto max-w-[90%] rounded-2xl rounded-br-md bg-[#1C1917] px-4 py-3 text-sm text-white shadow-subtle">{turn.query}</div><ResultsPanel data={turn.response} imagePreviews={turn.imagePreviews} showImages={false} dense conversation={conversation.map((item) => ({ query: item.query, response: item.response }))} /></article>)}

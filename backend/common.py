@@ -110,6 +110,14 @@ def load_image(spec, max_dim=512):
             if arr.ndim == 3:
                 arr = np.transpose(arr, (1, 2, 0))
 
+    highlight = spec.get("highlight")
+    if isinstance(highlight, (list, tuple)) and len(highlight) == 4:
+        x1, y1, x2, y2 = [max(0.0, min(1.0, float(value))) for value in highlight]
+        left, right = sorted((round(x1 * arr.shape[1]), round(x2 * arr.shape[1])))
+        top, bottom = sorted((round(y1 * arr.shape[0]), round(y2 * arr.shape[0])))
+        if right > left and bottom > top:
+            arr = arr[top:bottom, left:right]
+
     if modality == "sar":
         if arr.ndim == 3:
             arr = arr[..., 0]
@@ -149,7 +157,9 @@ def format_messages(row):
         else:
             label = f"Satellite Image [{mod}{date_str}]:"
 
-        content.extend([{"type": "text", "text": label}, {"type": "image"}])
+        highlight = img_spec.get("highlight")
+        scope = " The highlighted rectangle is the only area to analyze." if highlight else ""
+        content.extend([{"type": "text", "text": label + scope}, {"type": "image"}])
 
     system_prompt = (
         "You are SatQuery AI, an expert remote-sensing assistant. "

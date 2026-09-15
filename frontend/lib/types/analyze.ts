@@ -91,14 +91,16 @@ export interface ImageSlot {
   file: File;
   modality: Modality;
   timestamp: string; // "YYYY-MM-DD" or ""
+  highlight?: [number, number, number, number]; // normalized x1, y1, x2, y2
 }
 
 export interface AnalyzeFormValues {
-  images: ImageSlot[];  // 1 or 2
+  images: ImageSlot[];  // 1 to 5
   query: string;
   bands?: string;       // default "1,2,3"
   dataset?: string;     // default "operational"
   conversationId?: string;
+  highlightOverrides?: Array<[number, number, number, number] | null>;
   conversationContext?: Array<{
     query: string;
     answer: string;

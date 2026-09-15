@@ -19,7 +19,9 @@ accelerate>=0.34
 fastapi>=0.110
 uvicorn>=0.29
 starlette>=0.37
+httpx>=0.28
 python-multipart>=0.0.9     # required for Form(...) / File(...) uploads
+google-genai>=1.0.0         # optional Gemini post-inference answer formatter
 
 rasterio>=1.3               # GeoTIFF + SAR band reading
 pillow>=10.0

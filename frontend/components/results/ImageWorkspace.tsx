@@ -9,13 +9,43 @@ import { clsx } from "clsx";
 interface ImageWorkspaceProps {
   images: SavedImagePreview[];
   evidence?: VisualEvidence | null;
+  onHighlightChange?: (index: number, highlight: [number, number, number, number] | undefined) => void;
 }
 
 type ViewMode = "grid" | "img0" | "img1" | "evidence";
 
-export function ImageWorkspace({ images, evidence }: ImageWorkspaceProps) {
+export function ImageWorkspace({ images, evidence, onHighlightChange }: ImageWorkspaceProps) {
   const [fullscreen, setFullscreen] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [highlight, setHighlight] = useState<{ index: number; rect: [number, number, number, number] } | null>(() => {
+    const index = images.findIndex((image) => image.highlight);
+    return index >= 0 && images[index].highlight ? { index, rect: images[index].highlight } : null;
+  });
+
+  const selectHighlight = (event: React.PointerEvent<HTMLDivElement>, index: number) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const start: [number, number] = [
+      Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width)),
+      Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height)),
+    ];
+    event.currentTarget.setPointerCapture(event.pointerId);
+    const finish = (pointerEvent: PointerEvent) => {
+      const end: [number, number] = [
+        Math.max(0, Math.min(1, (pointerEvent.clientX - bounds.left) / bounds.width)),
+        Math.max(0, Math.min(1, (pointerEvent.clientY - bounds.top) / bounds.height)),
+      ];
+      const next: [number, number, number, number] = [
+        Math.min(start[0], end[0]), Math.min(start[1], end[1]),
+        Math.max(start[0], end[0]), Math.max(start[1], end[1]),
+      ];
+      if (next[2] - next[0] > 0.02 && next[3] - next[1] > 0.02) {
+        setHighlight({ index, rect: next });
+        onHighlightChange?.(index, next);
+      }
+      window.removeEventListener("pointerup", finish);
+    };
+    window.addEventListener("pointerup", finish);
+  };
 
   const overlay = evidence?.overlay_png_base64
     ? `data:image/png;base64,${evidence.overlay_png_base64}`
@@ -100,11 +130,10 @@ export function ImageWorkspace({ images, evidence }: ImageWorkspaceProps) {
                 key={image.filename}
                 className="group relative overflow-hidden rounded-xl border border-stone-200 bg-black/5 dark:border-white/10 dark:bg-black/20"
               >
-                <img
-                  src={image.data_url}
-                  alt={image.filename}
-                  className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
+                <div className="relative touch-none" onPointerDown={(event) => selectHighlight(event, idx)}>
+                  <img src={image.data_url} alt={image.filename} className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  {(highlight?.index === idx || image.highlight) && <div className="pointer-events-none absolute border-2 border-accent bg-accent/20" style={{ left: `${(highlight?.index === idx ? highlight.rect : image.highlight!)[0] * 100}%`, top: `${(highlight?.index === idx ? highlight.rect : image.highlight!)[1] * 100}%`, width: `${((highlight?.index === idx ? highlight.rect : image.highlight!)[2] - (highlight?.index === idx ? highlight.rect : image.highlight!)[0]) * 100}%`, height: `${((highlight?.index === idx ? highlight.rect : image.highlight!)[3] - (highlight?.index === idx ? highlight.rect : image.highlight!)[1]) * 100}%` }} />}
+                </div>
                 <button
                   type="button"
                   onClick={() => setFullscreen(image.data_url)}

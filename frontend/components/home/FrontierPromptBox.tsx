@@ -11,6 +11,9 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
+  PenLine,
+  Eraser,
+  Check,
 } from "lucide-react";
 import type { ImageSlot, Modality, AnalyzeFormValues } from "@/lib/types/analyze";
 import { createImagePreview } from "@/lib/imagePreview";
@@ -37,6 +40,7 @@ function ImageSlotCard({
   onRemove,
   onModalityChange,
   onTimestampChange,
+  onHighlightChange,
   preview,
 }: {
   slot: ImageSlot;
@@ -44,11 +48,79 @@ function ImageSlotCard({
   onRemove: () => void;
   onModalityChange: (m: Modality) => void;
   onTimestampChange: (t: string) => void;
+  onHighlightChange: (highlight: [number, number, number, number] | undefined) => void;
   preview: string | null;
 }) {
+  const [drawing, setDrawing] = useState(false);
+  const [start, setStart] = useState<[number, number] | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorTool, setEditorTool] = useState<"pen" | "eraser">("pen");
+  const [draftHighlight, setDraftHighlight] = useState<[number, number, number, number] | undefined>(slot.highlight);
+  const [drawingHighlight, setDrawingHighlight] = useState<[number, number, number, number] | undefined>(undefined);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    setDraftHighlight(slot.highlight);
+  }, [slot.highlight]);
+
+  const getPoint = (event: React.PointerEvent<HTMLDivElement>) => {
+    const rect = imageRef.current?.getBoundingClientRect() ?? event.currentTarget.getBoundingClientRect();
+    return [
+      Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)),
+      Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height)),
+    ] as [number, number];
+  };
+
+  const finishHighlight = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!drawing || !start || editorTool !== "pen") return;
+    const end = getPoint(event);
+    const x1 = Math.min(start[0], end[0]);
+    const y1 = Math.min(start[1], end[1]);
+    const x2 = Math.max(start[0], end[0]);
+    const y2 = Math.max(start[1], end[1]);
+    setDrawing(false);
+    setStart(null);
+    const completed: [number, number, number, number] = [x1, y1, x2, y2];
+    if (x2 - x1 > 0.02 && y2 - y1 > 0.02) setDraftHighlight(completed);
+    setDrawingHighlight(undefined);
+  };
+
+  const updateDrawingHighlight = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!drawing || !start || editorTool !== "pen") return;
+    const [endX, endY] = getPoint(event);
+    setDrawingHighlight([
+      Math.min(start[0], endX), Math.min(start[1], endY),
+      Math.max(start[0], endX), Math.max(start[1], endY),
+    ]);
+  };
+
+  const commitHighlight = () => {
+    onHighlightChange(draftHighlight);
+    setEditorOpen(false);
+    setDrawing(false);
+    setStart(null);
+  };
+
   return (
     <div className="flex flex-col gap-1.5 p-2.5 rounded-xl bg-stone-200/50 dark:bg-[#1F1B17] border border-stone-300/60 dark:border-white/10 animate-fade-in-up">
-      {preview ? <img src={preview} alt={`Preview of ${slot.file.name}`} className="max-h-44 w-full rounded-lg bg-black/5 object-contain dark:bg-black/20" /> : <div className="flex h-20 items-center justify-center rounded-lg bg-stone-300/40 text-xs text-secondary dark:bg-black/20">Preparing preview...</div>}
+      {preview ? <div className="relative self-start inline-block w-fit max-w-full" onDragStart={(event) => event.preventDefault()}><img draggable={false} src={preview} alt={`Preview of ${slot.file.name}`} className="block max-h-44 max-w-full w-auto h-auto rounded-lg bg-black/5 dark:bg-black/20" />{slot.highlight && <div className="pointer-events-none absolute inset-0"><div className="absolute border-2 border-dotted border-accent bg-accent/20" style={{ left: `${slot.highlight[0] * 100}%`, top: `${slot.highlight[1] * 100}%`, width: `${(slot.highlight[2] - slot.highlight[0]) * 100}%`, height: `${(slot.highlight[3] - slot.highlight[1]) * 100}%` }} /></div>}</div> : <div className="flex h-20 items-center justify-center rounded-lg bg-stone-300/40 text-xs text-secondary dark:bg-black/20">Preparing preview...</div>}
+      {preview && <div className="flex items-center gap-2"><button type="button" onClick={() => { setDraftHighlight(slot.highlight); setEditorTool("pen"); setEditorOpen(true); }} className="inline-flex items-center gap-1 rounded-md border border-stone-300/70 px-2 py-1 text-[10px] font-mono text-secondary transition-colors hover:border-accent hover:text-accent dark:border-white/10"><PenLine className="h-3 w-3" /> {slot.highlight ? "Edit zone" : "Highlight zone"}</button>{!slot.highlight && <span className="text-[10px] font-mono text-secondary">Open the pen to draw a focus area.</span>}</div>}
+      {slot.highlight && <button type="button" onClick={() => onHighlightChange(undefined)} className="self-start text-[10px] font-mono text-accent hover:underline">Clear highlighted zone</button>}
+
+      {editorOpen && preview && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm" role="dialog" aria-label={`Highlight ${slot.file.name}`}>
+        <div className="flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-white/15 bg-[#171512] shadow-2xl">
+          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3 text-white">
+            <div><p className="text-sm font-semibold">Highlight an area</p><p className="text-[10px] font-mono text-white/60">Draw only the region the model should analyze</p></div>
+            <div className="flex items-center gap-1"><button type="button" onClick={() => setEditorTool("pen")} className={`rounded-lg p-2 ${editorTool === "pen" ? "bg-accent text-white" : "text-white/70 hover:bg-white/10"}`} aria-label="Pen tool" title="Pen tool"><PenLine className="h-4 w-4" /></button><button type="button" onClick={() => { setEditorTool("eraser"); setDraftHighlight(undefined); }} className={`rounded-lg p-2 ${editorTool === "eraser" ? "bg-accent text-white" : "text-white/70 hover:bg-white/10"}`} aria-label="Erase highlight" title="Erase highlight"><Eraser className="h-4 w-4" /></button><button type="button" onClick={commitHighlight} className="ml-2 rounded-lg bg-emerald-600 p-2 text-white hover:bg-emerald-500" aria-label="Apply highlight" title="Apply highlight"><Check className="h-4 w-4" /></button></div>
+          </div>
+          <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto bg-black p-3 sm:p-6" onDragStart={(event) => { event.preventDefault(); event.stopPropagation(); }} onDrop={(event) => { event.preventDefault(); event.stopPropagation(); }}>
+            <div className={`relative self-start inline-block w-fit max-h-[72vh] max-w-full select-none ${editorTool === "pen" ? "cursor-crosshair" : "cursor-cell"}`} onPointerDown={(event) => { if (editorTool !== "pen") return; event.currentTarget.setPointerCapture(event.pointerId); setStart(getPoint(event)); setDrawingHighlight([getPoint(event)[0], getPoint(event)[1], getPoint(event)[0], getPoint(event)[1]]); setDrawing(true); }} onPointerMove={updateDrawingHighlight} onPointerUp={finishHighlight} onPointerCancel={() => { setDrawing(false); setStart(null); setDrawingHighlight(undefined); }}>
+              <img ref={imageRef} draggable={false} src={preview} alt={`Highlight editor for ${slot.file.name}`} className="block max-h-[72vh] max-w-full w-auto h-auto object-contain" />
+              {(drawingHighlight ?? draftHighlight) && <div className="pointer-events-none absolute border-2 border-dotted border-accent bg-accent/25" style={{ left: `${(drawingHighlight ?? draftHighlight)![0] * 100}%`, top: `${(drawingHighlight ?? draftHighlight)![1] * 100}%`, width: `${((drawingHighlight ?? draftHighlight)![2] - (drawingHighlight ?? draftHighlight)![0]) * 100}%`, height: `${((drawingHighlight ?? draftHighlight)![3] - (drawingHighlight ?? draftHighlight)![1]) * 100}%` }} />}
+            </div>
+          </div>
+        </div>
+      </div>}
       {/* Filename row */}
       <div className="flex items-center gap-2">
         <FileImage className="w-3.5 h-3.5 text-accent shrink-0" />
@@ -127,16 +199,20 @@ export const FrontierPromptBox: React.FC<FrontierPromptBoxProps> = ({
     };
   }, [images]);
 
-  const addFile = (file: File) => {
+  const addFiles = (incoming: File[]) => {
     setFileError(null);
-    if (images.length >= 2) {
-      setFileError("Maximum 2 images. Remove one first.");
-      return;
-    }
-    setImages((prev) => [
-      ...prev,
-      { file, modality: "optical", timestamp: "" },
-    ]);
+    setImages((prev) => {
+      const existingKeys = new Set(prev.map((slot) => `${slot.file.name}:${slot.file.size}:${slot.file.lastModified}`));
+      const newFiles = incoming.filter((file) => {
+        const key = `${file.name}:${file.size}:${file.lastModified}`;
+        if (existingKeys.has(key)) return false;
+        existingKeys.add(key);
+        return true;
+      });
+      const available = Math.max(0, 5 - prev.length);
+      if (newFiles.length > available) setFileError("Maximum 5 unique images. Remove one first.");
+      return [...prev, ...newFiles.slice(0, available).map((file) => ({ file, modality: "optical" as Modality, timestamp: "" }))];
+    });
   };
 
   const removeImage = (idx: number) => {
@@ -156,10 +232,14 @@ export const FrontierPromptBox: React.FC<FrontierPromptBoxProps> = ({
     );
   };
 
+  const updateHighlight = (idx: number, highlight: [number, number, number, number] | undefined) => {
+    setImages((prev) => prev.map((slot, imageIndex) => imageIndex === idx ? { ...slot, highlight } : slot));
+  };
+
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files) {
-      Array.from(files).forEach(addFile);
+      addFiles(Array.from(files));
     }
     e.target.value = "";
   };
@@ -168,7 +248,7 @@ export const FrontierPromptBox: React.FC<FrontierPromptBoxProps> = ({
     e.preventDefault();
     setIsDragOver(false);
     if (e.dataTransfer.files) {
-      Array.from(e.dataTransfer.files).forEach(addFile);
+      addFiles(Array.from(e.dataTransfer.files));
     }
   };
 
@@ -251,6 +331,7 @@ export const FrontierPromptBox: React.FC<FrontierPromptBoxProps> = ({
                   onRemove={() => removeImage(idx)}
                   onModalityChange={(m) => updateModality(idx, m)}
                   onTimestampChange={(t) => updateTimestamp(idx, t)}
+                  onHighlightChange={(highlight) => updateHighlight(idx, highlight)}
                   preview={previews[idx] ?? null}
                 />
               ))}
@@ -305,9 +386,9 @@ export const FrontierPromptBox: React.FC<FrontierPromptBoxProps> = ({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={images.length >= 2 || isSubmitting}
+                disabled={images.length >= 5 || isSubmitting}
                 className="apple-interactive flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-secondary hover:text-primary dark:text-[#B8AEA3] dark:hover:text-[#F3EEE7] bg-stone-200/50 dark:bg-[#1F1B17] hover:bg-stone-200/80 dark:hover:bg-[#2A241F] border border-stone-300/60 dark:border-white/10 shadow-xs transition-all duration-200 ease-apple disabled:opacity-40 disabled:pointer-events-none"
-                title={images.length >= 2 ? "Max 2 images" : "Attach image"}
+                title={images.length >= 5 ? "Max 5 images" : "Attach image"}
               >
                 {images.length >= 2 ? (
                   <Plus className="w-3.5 h-3.5 opacity-40" />
@@ -317,9 +398,7 @@ export const FrontierPromptBox: React.FC<FrontierPromptBoxProps> = ({
                 <span>
                   {images.length === 0
                     ? "Attach Image"
-                    : images.length === 1
-                    ? "Add 2nd Image"
-                    : "2 images"}
+                    : `${images.length} image${images.length === 1 ? "" : "s"}`}
                 </span>
               </button>
 
