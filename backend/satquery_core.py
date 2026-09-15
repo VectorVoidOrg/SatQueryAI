@@ -9,9 +9,9 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
-from input_validator import validate_input_pair, inspect_image
-from task_router import classify_task
-from evidence_engine import load_as_rgb, compute_pixel_difference, compute_cross_modal_composite
+from backend.input_validator import validate_input_pair, inspect_image
+from backend.task_router import classify_task
+from backend.evidence_engine import load_as_rgb, compute_pixel_difference, compute_cross_modal_composite
 
 load_dotenv()
 

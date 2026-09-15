@@ -6,9 +6,9 @@ from pathlib import Path
 from PIL import Image
 import numpy as np
 
-from input_validator import validate_input_pair, inspect_image
-from evidence_engine import load_as_rgb, compute_pixel_difference, compute_cross_modal_composite
-from satquery_core import process_satquery
+from backend.input_validator import validate_input_pair, inspect_image
+from backend.evidence_engine import load_as_rgb, compute_pixel_difference, compute_cross_modal_composite
+from backend.satquery_core import process_satquery
 
 st.set_page_config(
     page_title="SatQuery AI — Remote Sensing Vision Assistant",
