@@ -1,6 +1,6 @@
-google-generativeai
-streamlit
-rasterio
-numpy
-Pillow
-python-dotenv
+# Root requirements.txt for SatQuery AI
+# Backend dependencies are in backend/requirements.txt
+# This file exists for compatibility with tooling that expects a root requirements.txt
+
+# Include backend deps
+-r backend/requirements.txt
