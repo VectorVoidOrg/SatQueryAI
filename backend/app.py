@@ -68,94 +68,97 @@ class AgenticModelRuntime:
     def predict(self, image_specs, task, query):
         q_lower = query.lower()
 
-        # 1. Computational Tools (zero GPU VRAM usage)
+        # 1. Computational Tools (zero GPU VRAM usage) - BYPASSED: All queries sent directly to Gemini API
+        BYPASS_COMPUTATIONAL_TOOLS = True
+
         counting_keywords = ["how many", "count", "number of", "amount of", "building count"]
         risk_keywords = ["overflow", "risk", "danger", "precaution", "too close", "setback", "flood risk", "planning"]
         water_keywords = ["flood", "water", "submerge", "inundat", "water body", "river", "lake", "ocean"]
 
-        if any(kw in q_lower for kw in risk_keywords) and any(kw in q_lower for kw in water_keywords) and len(image_specs) >= 1:
-            target_image = image_specs[0]["path"]
-            risk_result = assess_urban_planning_risk(target_image)
-            status = risk_result.get("status")
+        if not BYPASS_COMPUTATIONAL_TOOLS:
+            if any(kw in q_lower for kw in risk_keywords) and any(kw in q_lower for kw in water_keywords) and len(image_specs) >= 1:
+                target_image = image_specs[0]["path"]
+                risk_result = assess_urban_planning_risk(target_image)
+                status = risk_result.get("status")
 
-            if status == "success":
-                flagged = risk_result.get("flagged_buildings", [])
-                total = risk_result.get("total_buildings_detected", 0)
-                pct = risk_result.get("water_percentage", 0.0)
-                if flagged:
-                    answer = (
-                        f"Water body detected covering {pct}% of the scene. Of {total} detected structure(s), "
-                        f"{len(flagged)} fall within the {risk_result['buffer_px']}px precautionary buffer of the "
-                        f"water edge and are flagged as at-risk:\n\n"
-                        + "\n".join(
-                            f"- {b['class']} at {b['bbox']}, {b['distance_to_water_px']}px from water"
-                            for b in flagged
+                if status == "success":
+                    flagged = risk_result.get("flagged_buildings", [])
+                    total = risk_result.get("total_buildings_detected", 0)
+                    pct = risk_result.get("water_percentage", 0.0)
+                    if flagged:
+                        answer = (
+                            f"Water body detected covering {pct}% of the scene. Of {total} detected structure(s), "
+                            f"{len(flagged)} fall within the {risk_result['buffer_px']}px precautionary buffer of the "
+                            f"water edge and are flagged as at-risk:\n\n"
+                            + "\n".join(
+                                f"- {b['class']} at {b['bbox']}, {b['distance_to_water_px']}px from water"
+                                for b in flagged
+                            )
                         )
-                    )
-                else:
-                    answer = (
-                        f"Water body detected covering {pct}% of the scene. {total} structure(s) detected, "
-                        f"none fall within the {risk_result['buffer_px']}px precautionary buffer — current "
-                        f"placement does not show immediate proximity risk."
-                    )
-                answer += f"\n\nNote: {risk_result.get('caveat', '')}"
-                confidence = 0.80
-            elif status == "no_water_detected":
-                answer = risk_result.get("reason", "No water body detected in this image.")
-                confidence = 0.85
-            else:
-                answer = f"Urban planning risk assessment unavailable: {risk_result.get('reason', 'unknown error')}."
-                confidence = 0.0
-            return answer, "computational_urban_planning_risk", confidence
-
-        if any(kw in q_lower for kw in counting_keywords) and len(image_specs) >= 1:
-            target_image = image_specs[0]["path"]
-            det_result = detect_objects(target_image)
-            if det_result.get("status") == "success":
-                total = det_result.get("total_detections", 0)
-                counts = det_result.get("class_counts", {})
-                caveat = det_result.get("caveat", "")
-                if total > 0:
-                    details = ", ".join(f"{v} {k}{'s' if v > 1 else ''}" for k, v in counts.items())
-                    answer = (
-                        f"Automated object detector (YOLOv8n CPU) identified a total of {total} object(s) "
-                        f"in the scene ({details}).\n\n"
-                        f"Note: {caveat}"
-                    )
+                    else:
+                        answer = (
+                            f"Water body detected covering {pct}% of the scene. {total} structure(s) detected, "
+                            f"none fall within the {risk_result['buffer_px']}px precautionary buffer — current "
+                            f"placement does not show immediate proximity risk."
+                        )
+                    answer += f"\n\nNote: {risk_result.get('caveat', '')}"
+                    confidence = 0.80
+                elif status == "no_water_detected":
+                    answer = risk_result.get("reason", "No water body detected in this image.")
                     confidence = 0.85
                 else:
-                    answer = (
-                        f"Automated object detector (YOLOv8n CPU) did not identify high-confidence structural objects "
-                        f"in this scene (0 detections at confidence threshold >= 0.25).\n\n"
-                        f"Note: {caveat}"
-                    )
-                    confidence = 0.70
-            else:
-                answer = f"Object detection unavailable: {det_result.get('reason', 'unknown error')}. Note: {det_result.get('caveat', '')}"
-                confidence = 0.0
-            return answer, "computational_building_detector", confidence
+                    answer = f"Urban planning risk assessment unavailable: {risk_result.get('reason', 'unknown error')}."
+                    confidence = 0.0
+                return answer, "computational_urban_planning_risk", confidence
 
-        if any(kw in q_lower for kw in water_keywords) and len(image_specs) >= 1:
-            target_image = image_specs[0]["path"]
-            water_result = compute_water(target_image)
-            if water_result.get("status") == "success":
-                pct = water_result.get("water_percentage", 0.0)
-                method = water_result.get("method", "rgb_blue_dominance_heuristic")
-                caveat = water_result.get("caveat")
-                total_px = water_result.get("total_pixels", 0)
-                water_px = water_result.get("water_pixels", 0)
-                method_name = "Normalized Difference Water Index (NDWI)" if method == "ndwi" else "Adaptive RGB Spectral Ratio Analysis"
-                answer = (
-                    f"Surface water coverage analysis via {method_name} computed {pct}% water surface extent "
-                    f"({water_px:,} of {total_px:,} pixels identified as water surface)."
-                )
-                if caveat:
-                    answer += f"\n\nNote: {caveat}"
-                confidence = 0.95 if method == "ndwi" else 0.85
-            else:
-                answer = f"Water coverage analysis unavailable: {water_result.get('reason', 'unknown error')}."
-                confidence = 0.0
-            return answer, "computational_water_index", confidence
+            if any(kw in q_lower for kw in counting_keywords) and len(image_specs) >= 1:
+                target_image = image_specs[0]["path"]
+                det_result = detect_objects(target_image)
+                if det_result.get("status") == "success":
+                    total = det_result.get("total_detections", 0)
+                    counts = det_result.get("class_counts", {})
+                    caveat = det_result.get("caveat", "")
+                    if total > 0:
+                        details = ", ".join(f"{v} {k}{'s' if v > 1 else ''}" for k, v in counts.items())
+                        answer = (
+                            f"Automated object detector (YOLOv8n CPU) identified a total of {total} object(s) "
+                            f"in the scene ({details}).\n\n"
+                            f"Note: {caveat}"
+                        )
+                        confidence = 0.85
+                    else:
+                        answer = (
+                            f"Automated object detector (YOLOv8n CPU) did not identify high-confidence structural objects "
+                            f"in this scene (0 detections at confidence threshold >= 0.25).\n\n"
+                            f"Note: {caveat}"
+                        )
+                        confidence = 0.70
+                else:
+                    answer = f"Object detection unavailable: {det_result.get('reason', 'unknown error')}. Note: {det_result.get('caveat', '')}"
+                    confidence = 0.0
+                return answer, "computational_building_detector", confidence
+
+            if any(kw in q_lower for kw in water_keywords) and len(image_specs) >= 1:
+                target_image = image_specs[0]["path"]
+                water_result = compute_water(target_image)
+                if water_result.get("status") == "success":
+                    pct = water_result.get("water_percentage", 0.0)
+                    method = water_result.get("method", "rgb_blue_dominance_heuristic")
+                    caveat = water_result.get("caveat")
+                    total_px = water_result.get("total_pixels", 0)
+                    water_px = water_result.get("water_pixels", 0)
+                    method_name = "Normalized Difference Water Index (NDWI)" if method == "ndwi" else "Adaptive RGB Spectral Ratio Analysis"
+                    answer = (
+                        f"Surface water coverage analysis via {method_name} computed {pct}% water surface extent "
+                        f"({water_px:,} of {total_px:,} pixels identified as water surface)."
+                    )
+                    if caveat:
+                        answer += f"\n\nNote: {caveat}"
+                    confidence = 0.95 if method == "ndwi" else 0.85
+                else:
+                    answer = f"Water coverage analysis unavailable: {water_result.get('reason', 'unknown error')}."
+                    confidence = 0.0
+                return answer, "computational_water_index", confidence
 
         # 2. VLM Generation via Gemini API
         max_dim = 448 if len(image_specs) == 2 else 512
